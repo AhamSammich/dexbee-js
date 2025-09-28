@@ -1,0 +1,37 @@
+{
+  "name": "@dexbee/dexbee",
+  "version": "0.1.0",
+  "description": "A TypeScript IndexedDB ORM with SQL-like query builder interface",
+  "license": "MIT",
+  "keywords": [
+    "indexeddb",
+    "orm",
+    "typescript",
+    "database",
+    "query-builder",
+    "browser",
+    "offline-first",
+    "sql-like",
+    "tree-shaking"
+  ],
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "publish": {
+    "exclude": [
+      "node_modules",
+      "dist",
+      "tests",
+      "docs",
+      "examples",
+      "packages",
+      ".git",
+      ".vscode",
+      "*.log",
+      "*.md",
+      ".env",
+      "tsconfig.tsbuildinfo",
+      "pnpm-lock.yaml"
+    ]
+  }
+}

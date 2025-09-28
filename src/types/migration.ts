@@ -1,0 +1,185 @@
+import type { DatabaseSchema, TableConfig } from './schema'
+
+export type MigrationOperationType
+  = | 'addTable'
+    | 'dropTable'
+    | 'addField'
+    | 'dropField'
+    | 'alterField'
+    | 'addIndex'
+    | 'dropIndex'
+    | 'transformData'
+
+export interface MigrationOperation {
+  type: MigrationOperationType
+  tableName: string
+  execute: (db: IDBDatabase) => Promise<void>
+  rollback?: (db: IDBDatabase) => Promise<void>
+  validate?: (oldSchema: DatabaseSchema, newSchema: DatabaseSchema) => void
+}
+
+export interface MigrationPlan {
+  version: number
+  operations: MigrationOperation[]
+  dependencies: string[]
+  estimatedDuration: number
+}
+
+export interface MigrationRecord {
+  version: number
+  appliedAt: Date
+  checksum: string
+  duration: number
+}
+
+export interface DataTransformation<T = any, R = any> {
+  transform: (record: T, tableName: string) => R
+  filter?: (record: T, tableName: string) => boolean
+  validate?: (result: R, tableName: string) => boolean
+}
+
+export interface SchemaDiff {
+  tablesAdded: TableConfig[]
+  tablesDropped: string[]
+  tablesModified: TableModification[]
+  indexesAdded: IndexAddition[]
+  indexesDropped: IndexDrop[]
+}
+
+export interface TableModification {
+  tableName: string
+  fieldsAdded: FieldAddition[]
+  fieldsDropped: string[]
+  fieldsModified: FieldModification[]
+}
+
+export interface FieldAddition {
+  fieldName: string
+  fieldDefinition: any // Will be properly typed when we reference FieldDefinition
+}
+
+export interface FieldModification {
+  fieldName: string
+  oldDefinition: any
+  newDefinition: any
+}
+
+export interface IndexAddition {
+  tableName: string
+  indexName: string
+  keyPath: string | string[]
+  options?: IDBIndexParameters
+}
+
+export interface IndexDrop {
+  tableName: string
+  indexName: string
+}
+
+export interface MigrationOptions {
+  dryRun?: boolean
+  createBackup?: boolean
+  rollbackOnError?: boolean
+  validateEachStep?: boolean
+  batchSize?: number
+}
+
+export interface ApplyOptions extends MigrationOptions {
+  atomicExecution?: boolean
+  autoRollbackOnError?: boolean
+}
+
+export interface RollbackOptions {
+  targetVersion?: number
+  validateIntegrity?: boolean
+  createBackup?: boolean
+}
+
+export interface MigrationResult {
+  success: boolean
+  version: number
+  operationsExecuted: number
+  duration: number
+  errors?: Error[]
+  backupCreated?: boolean
+}
+
+export interface RollbackResult {
+  success: boolean
+  targetVersion: number
+  operationsRolledBack: number
+  duration: number
+  errors?: Error[]
+}
+
+export interface DryRunResult {
+  isValid: boolean
+  estimatedDuration: number
+  operations: MigrationOperation[]
+  warnings: string[]
+  errors: string[]
+}
+
+export interface MigrationStatus {
+  currentVersion: number
+  pendingMigrations: MigrationPlan[]
+  lastAppliedMigration?: MigrationRecord
+  isUpToDate: boolean
+}
+
+export interface ValidationResult {
+  isValid: boolean
+  errors: string[]
+  warnings: string[]
+}
+
+export interface IntegrityResult {
+  passed: boolean
+  tableName: string
+  recordCount: number
+  errors: string[]
+}
+
+export interface ComplexityReport {
+  score: number // 1-10 scale
+  factors: string[]
+  estimatedDuration: number
+  riskLevel: 'low' | 'medium' | 'high'
+}
+
+export interface TransformOptions {
+  batchSize?: number
+  validateResults?: boolean
+  continueOnError?: boolean
+}
+
+export interface TransformResult {
+  success: boolean
+  recordsProcessed: number
+  recordsTransformed: number
+  errors: Error[]
+  duration: number
+}
+
+export interface BatchTransformOptions extends TransformOptions {
+  parallelTables?: boolean
+  maxConcurrency?: number
+}
+
+export interface TableTransformation<T = any, R = any> {
+  tableName: string
+  transformation: DataTransformation<T, R>
+}
+
+export interface BatchTransformResult {
+  success: boolean
+  tableResults: Map<string, TransformResult>
+  totalDuration: number
+  errors: Error[]
+}
+
+export interface RollbackValidation {
+  canRollback: boolean
+  missingRollbackOperations: string[]
+  warnings: string[]
+}

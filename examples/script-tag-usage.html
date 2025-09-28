@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DexBee UMD Script Tag Example</title>
+</head>
+<body>
+    <h1>DexBee UMD Example</h1>
+    <div id="status"></div>
+    <div id="results"></div>
+
+    <!-- Load DexBee via script tag -->
+    <script src="../dist/index.umd.js"></script>
+
+    <script>
+        const statusEl = document.getElementById('status');
+        const resultsEl = document.getElementById('results');
+
+        function log(message) {
+            console.log(message);
+            statusEl.innerHTML += `<p>${message}</p>`;
+        }
+
+        function logResult(message) {
+            console.log(message);
+            resultsEl.innerHTML += `<p>${message}</p>`;
+        }
+
+        async function demonstrateUMDBuild() {
+            try {
+                log('🚀 Testing DexBee UMD build...');
+
+                // Check that DexBee is available globally
+                if (typeof DexBee === 'undefined') {
+                    throw new Error('DexBee not found! UMD build failed.');
+                }
+
+                log('✅ DexBee global available');
+                log(`✅ DexBee.DexBee class: ${typeof DexBee.DexBee}`);
+                log(`✅ DexBee.Database class: ${typeof DexBee.Database}`);
+                log(`✅ DexBee.DexBeeError class: ${typeof DexBee.DexBeeError}`);
+
+                // Define a simple schema
+                const schema = {
+                    version: 1,
+                    tables: {
+                        users: {
+                            schema: {
+                                id: { type: 'number', required: true },
+                                name: { type: 'string', required: true },
+                                email: { type: 'string', unique: true }
+                            },
+                            primaryKey: 'id',
+                            autoIncrement: true
+                        }
+                    }
+                };
+
+                log('📋 Schema defined');
+
+                // Create and connect to database using UMD build
+                const db = await DexBee.DexBee.connect('umd-test-db', schema);
+                log('✅ Connected to database via UMD build');
+
+                // Test basic operations
+                await db.withWriteTransaction(['users'], async (tx) => {
+                    const store = tx.getStore('users');
+
+                    const userData = db.applyDefaults('users', {
+                        name: 'UMD Test User',
+                        email: 'umd@example.com'
+                    });
+
+                    db.validateData('users', userData);
+                    log('📝 Data validated');
+
+                    const request = store.add(userData);
+                    return new Promise((resolve, reject) => {
+                        request.onsuccess = () => {
+                            log(`✅ User added with ID: ${request.result}`);
+                            resolve();
+                        };
+                        request.onerror = () => reject(request.error);
+                    });
+                });
+
+                // Read data back
+                const users = await db.withReadTransaction(['users'], async (tx) => {
+                    const store = tx.getStore('users');
+                    const request = store.getAll();
+
+                    return new Promise((resolve, reject) => {
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+                });
+
+                logResult(`👥 Found ${users.length} user(s):`);
+                users.forEach(user => {
+                    logResult(`  - ${user.name} (${user.email}) - ID: ${user.id}`);
+                });
+
+                db.close();
+                log('🔌 Database closed');
+                log('🎉 UMD build test completed successfully!');
+
+            } catch (error) {
+                log(`❌ Error: ${error.message}`);
+                console.error(error);
+            }
+        }
+
+        // Run the demo when page loads
+        demonstrateUMDBuild();
+    </script>
+</body>
+</html>

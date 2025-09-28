@@ -1,0 +1,16 @@
+{
+  "bracketSameLine": false,
+  "singleQuote": true,
+  "trailingComma": "all",
+  "semi": false,
+  "embeddedLanguageFormatting": "auto",
+  "tabWidth": 2,
+  "useTabs": false,
+  "printWidth": 80,
+  "quoteProps": "consistent",
+  "arrowParens": "always",
+  "vueIndentScriptAndStyle": false,
+  "bracketSpacing": true,
+  "proseWrap": "always",
+  "singleAttributePerLine": true
+}

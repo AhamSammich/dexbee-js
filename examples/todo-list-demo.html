@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DexBee Todo List Demo</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            line-height: 1.6;
+            color: #4a4a4a;
+            background: #faf6f1;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            overflow: hidden;
+            border: 1px solid #f0ebe5;
+        }
+
+        .header {
+            background: #faf6f1;
+            color: #4a4a4a;
+            padding: 32px 24px;
+            text-align: center;
+            border-bottom: 1px solid #f0ebe5;
+        }
+
+        .header h1 {
+            margin-bottom: 12px;
+            font-size: 32px;
+            font-weight: 700;
+            color: #2d2d2d;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .header p {
+            font-size: 16px;
+            color: #6b6b6b;
+            font-weight: 400;
+        }
+
+        .status {
+            background: #fcf9f4;
+            padding: 16px 24px;
+            border-bottom: 1px solid #f0ebe5;
+            font-size: 14px;
+            color: #6b6b6b;
+        }
+
+        .todo-form {
+            padding: 24px;
+            border-bottom: 1px solid #f0ebe5;
+        }
+
+        .form-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .todo-input {
+            flex: 1;
+            padding: 14px 16px;
+            border: 2px solid #f0ebe5;
+            border-radius: 12px;
+            font-size: 16px;
+            transition: all 0.2s;
+            background: #faf6f1;
+        }
+
+        .todo-input:focus {
+            outline: none;
+            border-color: #b85c3e;
+            background: white;
+        }
+
+        .btn {
+            padding: 14px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: #b85c3e;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #a04d31;
+            transform: translateY(-1px);
+        }
+
+        .btn-secondary {
+            background: #f0ebe5;
+            color: #6b6b6b;
+        }
+
+        .btn-secondary:hover {
+            background: #e6ddd4;
+            transform: translateY(-1px);
+        }
+
+        .btn-danger {
+            background: #dc5e5e;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #c54545;
+            transform: translateY(-1px);
+        }
+
+        .filters {
+            padding: 20px 24px;
+            border-bottom: 1px solid #f0ebe5;
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            background: #fcf9f4;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            background: white;
+            border: 2px solid #f0ebe5;
+            border-radius: 24px;
+            color: #6b6b6b;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-weight: 500;
+        }
+
+        .filter-btn:hover {
+            border-color: #e6ddd4;
+            transform: translateY(-1px);
+        }
+
+        .filter-btn.active {
+            background: #b85c3e;
+            color: white;
+            border-color: #b85c3e;
+        }
+
+        .todo-list {
+            min-height: 200px;
+        }
+
+        .todo-item {
+            padding: 18px 24px;
+            border-bottom: 1px solid #f8f5f0;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            transition: all 0.2s;
+        }
+
+        .todo-item:hover {
+            background: #fcf9f4;
+        }
+
+        .todo-item.completed {
+            background: #f4f9f4;
+        }
+
+        .todo-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #b85c3e;
+        }
+
+        .todo-text {
+            flex: 1;
+            font-size: 16px;
+            color: #2d2d2d;
+        }
+
+        .todo-item.completed .todo-text {
+            text-decoration: line-through;
+            color: #6b6b6b;
+        }
+
+        .todo-date {
+            font-size: 12px;
+            color: #9b9b9b;
+            font-weight: 500;
+        }
+
+        .todo-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-small {
+            padding: 8px 14px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: #9b9b9b;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .stats {
+            padding: 18px 24px;
+            background: #fcf9f4;
+            border-top: 1px solid #f0ebe5;
+            text-align: center;
+            font-size: 14px;
+            color: #6b6b6b;
+            font-weight: 500;
+        }
+
+        .demo-info {
+            background: #f6f8fa;
+            border: 1px solid #e8ecf0;
+            border-radius: 12px;
+            padding: 16px;
+            margin: 24px;
+            font-size: 14px;
+            color: #4a4a4a;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 48px;
+            color: #9b9b9b;
+        }
+
+        .error {
+            background: #fef3f3;
+            border: 1px solid #f7c9c9;
+            color: #c54545;
+            padding: 16px;
+            border-radius: 12px;
+            margin: 24px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🐝 DexBee Todo List</h1>
+            <p>The SQL-like ORM for the Browser</p>
+        </div>
+
+        <div id="status" class="status">
+            🔄 Initializing DexBee database...
+        </div>
+
+        <div id="error-container"></div>
+
+        <div id="app-content" style="display: none;">
+            <div class="demo-info">
+                <strong>✨ Demo Features:</strong> This todo list showcases DexBee's core capabilities including database connection, schema validation, CRUD operations, SQL-like queries (filtering), and real-time updates.
+            </div>
+
+            <div class="todo-form">
+                <div class="form-group">
+                    <input type="text" id="todo-input" class="todo-input" placeholder="What needs to be done?" />
+                    <button id="add-btn" class="btn btn-primary">Add Todo</button>
+                </div>
+            </div>
+
+            <div class="filters">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="active">Active</button>
+                <button class="filter-btn" data-filter="completed">Completed</button>
+            </div>
+
+            <div id="todo-list" class="todo-list">
+                <div class="loading">
+                    Loading todos...
+                </div>
+            </div>
+
+            <div id="stats" class="stats">
+                <span id="total-count">0</span> total •
+                <span id="active-count">0</span> active •
+                <span id="completed-count">0</span> completed
+            </div>
+        </div>
+    </div>
+
+    <!-- Load DexBee via script tag -->
+    <script src="../dist/index.umd.js"></script>
+
+    <script>
+        // Global variables
+        let db = null;
+        let currentFilter = 'all';
+        let todos = [];
+
+        // DOM elements
+        const statusEl = document.getElementById('status');
+        const errorContainer = document.getElementById('error-container');
+        const appContent = document.getElementById('app-content');
+        const todoInput = document.getElementById('todo-input');
+        const addBtn = document.getElementById('add-btn');
+        const todoList = document.getElementById('todo-list');
+        const filterBtns = document.querySelectorAll('.filter-btn');
+        const totalCountEl = document.getElementById('total-count');
+        const activeCountEl = document.getElementById('active-count');
+        const completedCountEl = document.getElementById('completed-count');
+
+        // Utility functions
+        function updateStatus(message) {
+            statusEl.textContent = message;
+        }
+
+        function showError(message) {
+            errorContainer.innerHTML = `<div class="error">❌ ${message}</div>`;
+        }
+
+        function clearError() {
+            errorContainer.innerHTML = '';
+        }
+
+        function formatDate(timestamp) {
+            return new Date(timestamp).toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit'
+            });
+        }
+
+        // Database initialization
+        async function initializeDatabase() {
+            try {
+                updateStatus('📊 Defining database schema...');
+
+                const schema = {
+                    version: 1,
+                    tables: {
+                        todos: {
+                            schema: {
+                                id: { type: 'number', required: true },
+                                text: { type: 'string', required: true },
+                                completed: { type: 'boolean', required: true, default: false },
+                                createdAt: { type: 'number', required: true }
+                            },
+                            primaryKey: 'id',
+                            autoIncrement: true,
+                            indexes: [
+                                { name: 'by_completed', keyPath: 'completed' },
+                                { name: 'by_created', keyPath: 'createdAt' }
+                            ]
+                        }
+                    }
+                };
+
+                updateStatus('🔌 Connecting to IndexedDB...');
+                db = await DexBee.DexBee.connect('todo-demo-db', schema);
+
+                updateStatus('✅ Database connected successfully!');
+                clearError();
+
+                // Show the app
+                appContent.style.display = 'block';
+
+                // Load initial todos
+                await loadTodos();
+
+                updateStatus('🎉 Ready to manage your todos!');
+
+            } catch (error) {
+                console.error('Database initialization failed:', error);
+                showError(`Database initialization failed: ${error.message}`);
+                updateStatus('❌ Failed to initialize database');
+            }
+        }
+
+        // Todo operations
+        async function addTodo(text) {
+            try {
+                if (!text.trim()) {
+                    throw new Error('Todo text cannot be empty');
+                }
+
+                const table = db.table('todos');
+                const newTodo = await table.insert({
+                    text: text.trim(),
+                    completed: false,
+                    createdAt: Date.now()
+                });
+
+                console.log('Todo added:', newTodo);
+                await loadTodos();
+                todoInput.value = '';
+
+            } catch (error) {
+                console.error('Failed to add todo:', error);
+                showError(`Failed to add todo: ${error.message}`);
+            }
+        }
+
+        async function toggleTodo(id) {
+            try {
+                const table = db.table('todos');
+
+                // Find the todo
+                const todo = await table.where(DexBee.eq('id', id)).first();
+                if (!todo) {
+                    throw new Error('Todo not found');
+                }
+
+                // Update the completed status
+                await table.update(id, {
+                    completed: !todo.completed
+                });
+
+                console.log(`Todo ${id} toggled to ${!todo.completed}`);
+                await loadTodos();
+
+            } catch (error) {
+                console.error('Failed to toggle todo:', error);
+                showError(`Failed to toggle todo: ${error.message}`);
+            }
+        }
+
+        async function deleteTodo(id) {
+            try {
+                const table = db.table('todos');
+                const deleted = await table.delete(id);
+
+                if (!deleted) {
+                    throw new Error('Todo not found');
+                }
+
+                console.log(`Todo ${id} deleted`);
+                await loadTodos();
+
+            } catch (error) {
+                console.error('Failed to delete todo:', error);
+                showError(`Failed to delete todo: ${error.message}`);
+            }
+        }
+
+        async function loadTodos() {
+            try {
+                const table = db.table('todos');
+
+                // Load all todos ordered by creation date (newest first)
+                todos = await table.orderBy('createdAt', 'desc').all();
+
+                console.log(`Loaded ${todos.length} todos from database`);
+                renderTodos();
+                updateStats();
+
+            } catch (error) {
+                console.error('Failed to load todos:', error);
+                showError(`Failed to load todos: ${error.message}`);
+            }
+        }
+
+        // Filtering
+        function getFilteredTodos() {
+            switch (currentFilter) {
+                case 'active':
+                    return todos.filter(todo => !todo.completed);
+                case 'completed':
+                    return todos.filter(todo => todo.completed);
+                default:
+                    return todos;
+            }
+        }
+
+        function setFilter(filter) {
+            currentFilter = filter;
+
+            // Update active filter button
+            filterBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.filter === filter);
+            });
+
+            renderTodos();
+        }
+
+        // Rendering
+        function renderTodos() {
+            const filteredTodos = getFilteredTodos();
+
+            if (filteredTodos.length === 0) {
+                todoList.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">📝</div>
+                        <div>
+                            ${currentFilter === 'active' ? 'No active todos!' :
+                              currentFilter === 'completed' ? 'No completed todos!' :
+                              'No todos yet. Add one above!'}
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+
+            todoList.innerHTML = filteredTodos.map(todo => `
+                <div class="todo-item ${todo.completed ? 'completed' : ''}">
+                    <input type="checkbox" class="todo-checkbox"
+                           ${todo.completed ? 'checked' : ''}
+                           onchange="toggleTodo(${todo.id})">
+                    <span class="todo-text">${escapeHtml(todo.text)}</span>
+                    <span class="todo-date">${formatDate(todo.createdAt)}</span>
+                    <div class="todo-actions">
+                        <button class="btn btn-danger btn-small" onclick="deleteTodo(${todo.id})">
+                            Delete
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function updateStats() {
+            const total = todos.length;
+            const completed = todos.filter(todo => todo.completed).length;
+            const active = total - completed;
+
+            totalCountEl.textContent = total;
+            activeCountEl.textContent = active;
+            completedCountEl.textContent = completed;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Event listeners
+        addBtn.addEventListener('click', () => {
+            addTodo(todoInput.value);
+        });
+
+        todoInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                addTodo(todoInput.value);
+            }
+        });
+
+        filterBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                setFilter(btn.dataset.filter);
+            });
+        });
+
+        // Global functions for inline event handlers
+        window.toggleTodo = toggleTodo;
+        window.deleteTodo = deleteTodo;
+
+        // Initialize the app
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('🚀 Starting DexBee Todo List Demo');
+
+            // Check if DexBee is available
+            if (typeof DexBee === 'undefined') {
+                showError('DexBee library not found! Make sure the script is loaded correctly.');
+                updateStatus('❌ DexBee library not available');
+                return;
+            }
+
+            console.log('✅ DexBee library loaded');
+            initializeDatabase();
+        });
+    </script>
+</body>
+</html>
