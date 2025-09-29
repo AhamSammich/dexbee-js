@@ -15,6 +15,7 @@ A modern TypeScript IndexedDB ORM with SQL-like query builder interface. Build p
 - 🔄 **Transaction support** - ACID compliance with transaction wrapper
 - 🌐 **Modern ESM** - Full ESM support with TypeScript declarations
 - 🎨 **Query builder** - Intuitive, chainable query interface
+- 🌍 **Browser-focused** - Built specifically for IndexedDB in browser environments
 
 ## 📦 Installation
 
@@ -30,7 +31,51 @@ pnpm add dexbee-js
 yarn add dexbee-js
 ```
 
+## 🌍 Browser Compatibility
+
+DexBee is built specifically for **browser environments** and requires IndexedDB support:
+
+**✅ Supported:**
+- Modern browsers (Chrome 24+, Firefox 16+, Safari 8+, Edge 12+)
+- Electron applications
+- WebView-based applications
+- Progressive Web Apps (PWAs)
+
+**❌ Not supported:**
+- Node.js (no IndexedDB)
+- Deno server-side (no IndexedDB) 
+- Bun server-side (no IndexedDB)
+- Cloudflare Workers (different storage APIs)
+
 ## 🚀 Quick Start
+
+### Basic Example
+
+```typescript
+import { DexBee, eq, gt } from 'dexbee-js'
+
+// Quick start with DexBee
+const db = await DexBee.connect('myapp', {
+  version: 1,
+  tables: {
+    users: {
+      schema: {
+        id: { type: 'number', required: true },
+        name: { type: 'string', required: true },
+        age: { type: 'number' }
+      },
+      primaryKey: 'id',
+      autoIncrement: true
+    }
+  }
+})
+
+// Insert and query data
+const users = db.table('users')
+await users.insert({ name: 'Alice', age: 25 })
+const adults = await users.where(gt('age', 18)).all()
+console.log(adults) // [{ id: 1, name: 'Alice', age: 25 }]
+```
 
 ### Define Your Schema
 
@@ -41,29 +86,33 @@ const schema: DatabaseSchema = {
   version: 1,
   tables: {
     users: {
-      fields: {
-        id: { type: 'string', primaryKey: true },
+      schema: {
+        id: { type: 'number', required: true },
         name: { type: 'string', required: true },
         email: { type: 'string', unique: true },
         age: { type: 'number' },
         createdAt: { type: 'date', default: () => new Date() }
       },
+      primaryKey: 'id',
+      autoIncrement: true,
       indexes: [
-        { fields: ['email'], unique: true },
-        { fields: ['age'] }
+        { name: 'email', keyPath: 'email', unique: true },
+        { name: 'age', keyPath: 'age' }
       ]
     },
     posts: {
-      fields: {
-        id: { type: 'string', primaryKey: true },
+      schema: {
+        id: { type: 'number', required: true },
         title: { type: 'string', required: true },
         content: { type: 'string' },
-        authorId: { type: 'string', required: true },
+        authorId: { type: 'number', required: true },
         publishedAt: { type: 'date' }
       },
+      primaryKey: 'id',
+      autoIncrement: true,
       indexes: [
-        { fields: ['authorId'] },
-        { fields: ['publishedAt'] }
+        { name: 'authorId', keyPath: 'authorId' },
+        { name: 'publishedAt', keyPath: 'publishedAt' }
       ]
     }
   }
@@ -114,19 +163,13 @@ const youngAdults = await users
   ))
   .orderBy('name')
   .limit(10)
-  .execute()
+  .all()
 
-// Update records
-await users
-  .update({ age: 31 })
-  .where(eq('id', '1'))
-  .execute()
+// Update records (use direct method)
+await users.update(1, { age: 31 })
 
-// Delete records
-await users
-  .delete()
-  .where(gt('age', 65))
-  .execute()
+// Delete records (use direct method)
+await users.delete(1)
 ```
 
 ## 📖 Advanced Usage
@@ -224,7 +267,7 @@ const results = await users
   .orderBy('age', 'desc')
   .limit(20)
   .offset(10)
-  .execute()
+  .all()
 ```
 
 ### Tree Shaking

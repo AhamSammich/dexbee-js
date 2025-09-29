@@ -17,6 +17,13 @@
   "exports": {
     ".": "./src/index.ts"
   },
+  "compilerOptions": {
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "es2022"
+    ]
+  },
   "publish": {
     "exclude": [
       "node_modules",
@@ -28,7 +35,6 @@
       ".git",
       ".vscode",
       "*.log",
-      "*.md",
       ".env",
       "tsconfig.tsbuildinfo",
       "pnpm-lock.yaml"
