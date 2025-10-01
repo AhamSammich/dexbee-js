@@ -1,7 +1,7 @@
 {
   "name": "dexbee-js",
   "type": "module",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "packageManager": "pnpm@10.16.0",
   "description": "A TypeScript IndexedDB ORM with SQL-like query builder interface",
   "author": "Andre Hammons <dev@ahammons.me>",
