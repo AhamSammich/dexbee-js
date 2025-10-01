@@ -6,13 +6,13 @@
   "description": "A TypeScript IndexedDB ORM with SQL-like query builder interface",
   "author": "Andre Hammons <dev@ahammons.me>",
   "license": "MIT",
-  "homepage": "https://github.com/ahamsammich/dexbee-js#readme",
+  "homepage": "https://github.com/AhamSammich/dexbee-js#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ahamsammich/dexbee-js.git"
+    "url": "https://github.com/AhamSammich/dexbee-js.git"
   },
   "bugs": {
-    "url": "https://github.com/ahamsammich/dexbee-js/issues"
+    "url": "https://github.com/AhamSammich/dexbee-js/issues"
   },
   "keywords": [
     "indexeddb",
