@@ -56,3 +56,4 @@ Thumbs.db
 # Test artifacts
 test-results/
 playwright-report/
+tests/integration/__screenshots__/

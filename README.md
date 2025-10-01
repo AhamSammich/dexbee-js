@@ -2,6 +2,7 @@
 
 A modern TypeScript IndexedDB ORM with SQL-like query builder interface. Build powerful browser-based applications with type-safe database operations and automatic schema migrations.
 
+[![CI](https://github.com/AhamSammich/dexbee-js/actions/workflows/ci.yml/badge.svg)](https://github.com/AhamSammich/dexbee-js/actions/workflows/ci.yml)
 [![npm version](https://badge.fury.io/js/dexbee-js.svg)](https://badge.fury.io/js/dexbee-js)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)

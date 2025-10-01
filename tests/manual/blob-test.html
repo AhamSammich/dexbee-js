@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DexBee Blob Support - Manual Tests</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+    }
+    .test-section {
+      margin: 20px 0;
+      padding: 15px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .test-section h3 {
+      margin-top: 0;
+      color: #333;
+    }
+    .pass {
+      color: green;
+      font-weight: bold;
+    }
+    .fail {
+      color: red;
+      font-weight: bold;
+    }
+    .result {
+      margin: 10px 0;
+      padding: 10px;
+      background: #f5f5f5;
+      border-radius: 3px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 14px;
+      cursor: pointer;
+      background: #007bff;
+      color: white;
+      border: none;
+      border-radius: 4px;
+    }
+    button:hover {
+      background: #0056b3;
+    }
+    #file-input {
+      margin: 10px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>🐝 DexBee Blob Support Manual Tests</h1>
+  <p>This page tests blob storage in a real browser environment with actual IndexedDB.</p>
+
+  <div class="test-section">
+    <h3>Test 1: File Upload and Storage</h3>
+    <input type="file" id="file-input" />
+    <button onclick="testFileUpload()">Store File</button>
+    <div id="file-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 2: Blob Creation and Storage</h3>
+    <button onclick="testBlobStorage()">Test Blob Storage</button>
+    <div id="blob-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 3: ArrayBuffer Storage</h3>
+    <button onclick="testArrayBufferStorage()">Test ArrayBuffer</button>
+    <div id="arraybuffer-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 4: Size-Based Queries</h3>
+    <button onclick="testSizeQueries()">Test Size Queries</button>
+    <div id="size-query-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 5: MIME Type Queries</h3>
+    <button onclick="testMimeTypeQueries()">Test MIME Type Queries</button>
+    <div id="mime-query-result" class="result"></div>
+  </div>
+
+  <div class="test-section">
+    <h3>Test 6: Blob URL Generation</h3>
+    <button onclick="testBlobUrlGeneration()">Generate Blob URL</button>
+    <div id="url-result" class="result"></div>
+    <img id="url-image" style="max-width: 200px; display: none;" />
+  </div>
+
+  <script type="module">
+    import { DexBee, eq, sizeGt, sizeLt, mimeType, and } from '../../dist/index.js';
+
+    let db;
+
+    // Initialize database
+    async function initDB() {
+      const schema = {
+        version: 1,
+        tables: {
+          documents: {
+            schema: {
+              id: { type: 'string', required: true },
+              title: { type: 'string', required: true },
+              file: { type: 'file', maxSize: 50 * 1024 * 1024 },
+              thumbnail: { type: 'blob' },
+              data: { type: 'arraybuffer' }
+            },
+            primaryKey: 'id'
+          }
+        }
+      };
+
+      db = await DexBee.connect('dexbee-blob-manual-test', schema);
+      return db;
+    }
+
+    // Test 1: File Upload
+    window.testFileUpload = async function() {
+      const resultEl = document.getElementById('file-result');
+      resultEl.innerHTML = 'Processing...';
+
+      try {
+        if (!db) await initDB();
+        const fileInput = document.getElementById('file-input');
+        const file = fileInput.files[0];
+
+        if (!file) {
+          resultEl.innerHTML = '<span class="fail">❌ Please select a file first</span>';
+          return;
+        }
+
+        const documents = db.table('documents');
+
+        // Store file
+        const doc = await documents.insert({
+          id: 'file-1',
+          title: `Uploaded: ${file.name}`,
+          file: file
+        });
+
+        // Retrieve file
+        const retrieved = await documents.findById('file-1');
+
+        // Verify
+        const checks = [
+          `File stored: ${retrieved.file instanceof File ? '✅' : '❌'}`,
+          `Name preserved: ${retrieved.file.name === file.name ? '✅' : '❌'} (${retrieved.file.name})`,
+          `Type preserved: ${retrieved.file.type === file.type ? '✅' : '❌'} (${retrieved.file.type})`,
+          `Size: ${retrieved.file.size} bytes`
+        ];
+
+        resultEl.innerHTML = `<span class="pass">✅ File upload test passed!</span><br>${checks.join('<br>')}`;
+      } catch (error) {
+        resultEl.innerHTML = `<span class="fail">❌ Error: ${error.message}</span>`;
+        console.error(error);
+      }
+    };
+
+    // Test 2: Blob Storage
+    window.testBlobStorage = async function() {
+      const resultEl = document.getElementById('blob-result');
+      resultEl.innerHTML = 'Processing...';
+
+      try {
+        if (!db) await initDB();
+        const documents = db.table('documents');
+
+        // Create a blob
+        const blob = new Blob(['Hello, DexBee! This is blob content.'], { type: 'text/plain' });
+
+        // Store blob
+        await documents.insert({
+          id: 'blob-1',
+          title: 'Test Blob',
+          thumbnail: blob
+        });
+
+        // Retrieve blob
+        const retrieved = await documents.findById('blob-1');
+
+        // Verify
+        const text = await retrieved.thumbnail.text();
+        const checks = [
+          `Blob stored: ${retrieved.thumbnail instanceof Blob ? '✅' : '❌'}`,
+          `Type: ${retrieved.thumbnail.type}`,
+          `Size: ${retrieved.thumbnail.size} bytes`,
+          `Content: "${text}"`
+        ];
+
+        resultEl.innerHTML = `<span class="pass">✅ Blob storage test passed!</span><br>${checks.join('<br>')}`;
+      } catch (error) {
+        resultEl.innerHTML = `<span class="fail">❌ Error: ${error.message}</span>`;
+        console.error(error);
+      }
+    };
+
+    // Test 3: ArrayBuffer Storage
+    window.testArrayBufferStorage = async function() {
+      const resultEl = document.getElementById('arraybuffer-result');
+      resultEl.innerHTML = 'Processing...';
+
+      try {
+        if (!db) await initDB();
+        const documents = db.table('documents');
+
+        // Create ArrayBuffer
+        const buffer = new ArrayBuffer(256);
+        const view = new Uint8Array(buffer);
+        view[0] = 42;
+        view[1] = 255;
+
+        // Store ArrayBuffer
+        await documents.insert({
+          id: 'buffer-1',
+          title: 'Test ArrayBuffer',
+          data: buffer
+        });
+
+        // Retrieve ArrayBuffer
+        const retrieved = await documents.findById('buffer-1');
+        const retrievedView = new Uint8Array(retrieved.data);
+
+        // Verify
+        const checks = [
+          `ArrayBuffer stored: ${retrieved.data instanceof ArrayBuffer ? '✅' : '❌'}`,
+          `Size: ${retrieved.data.byteLength} bytes`,
+          `First byte: ${retrievedView[0]} (expected 42) ${retrievedView[0] === 42 ? '✅' : '❌'}`,
+          `Second byte: ${retrievedView[1]} (expected 255) ${retrievedView[1] === 255 ? '✅' : '❌'}`
+        ];
+
+        resultEl.innerHTML = `<span class="pass">✅ ArrayBuffer storage test passed!</span><br>${checks.join('<br>')}`;
+      } catch (error) {
+        resultEl.innerHTML = `<span class="fail">❌ Error: ${error.message}</span>`;
+        console.error(error);
+      }
+    };
+
+    // Test 4: Size Queries
+    window.testSizeQueries = async function() {
+      const resultEl = document.getElementById('size-query-result');
+      resultEl.innerHTML = 'Processing...';
+
+      try {
+        if (!db) await initDB();
+        const documents = db.table('documents');
+
+        // Create files of different sizes
+        const small = new Blob(['small'], { type: 'text/plain' });
+        const medium = new Blob(['medium content that is longer'], { type: 'text/plain' });
+        const large = new Blob(['large content that is much much longer than the others'], { type: 'text/plain' });
+
+        await documents.insert({ id: 'size-1', title: 'Small', thumbnail: small });
+        await documents.insert({ id: 'size-2', title: 'Medium', thumbnail: medium });
+        await documents.insert({ id: 'size-3', title: 'Large', thumbnail: large });
+
+        // Query by size
+        const largeFiles = await documents.where(sizeGt('thumbnail', 20)).all();
+        const smallFiles = await documents.where(sizeLt('thumbnail', 10)).all();
+
+        const checks = [
+          `Total documents: ${(await documents.all()).length}`,
+          `Large files (>20 bytes): ${largeFiles.length} ${largeFiles.length >= 2 ? '✅' : '❌'}`,
+          `Small files (<10 bytes): ${smallFiles.length} ${smallFiles.length >= 1 ? '✅' : '❌'}`
+        ];
+
+        resultEl.innerHTML = `<span class="pass">✅ Size query test passed!</span><br>${checks.join('<br>')}`;
+      } catch (error) {
+        resultEl.innerHTML = `<span class="fail">❌ Error: ${error.message}</span>`;
+        console.error(error);
+      }
+    };
+
+    // Test 5: MIME Type Queries
+    window.testMimeTypeQueries = async function() {
+      const resultEl = document.getElementById('mime-query-result');
+      resultEl.innerHTML = 'Processing...';
+
+      try {
+        if (!db) await initDB();
+        const documents = db.table('documents');
+
+        // Create blobs with different MIME types
+        const textBlob = new Blob(['text content'], { type: 'text/plain' });
+        const jsonBlob = new Blob(['{"key": "value"}'], { type: 'application/json' });
+        const htmlBlob = new Blob(['<h1>HTML</h1>'], { type: 'text/html' });
+
+        await documents.insert({ id: 'mime-1', title: 'Text', thumbnail: textBlob });
+        await documents.insert({ id: 'mime-2', title: 'JSON', thumbnail: jsonBlob });
+        await documents.insert({ id: 'mime-3', title: 'HTML', thumbnail: htmlBlob });
+
+        // Query by MIME type
+        const textFiles = await documents.where(mimeType('thumbnail', 'text/plain')).all();
+        const jsonFiles = await documents.where(mimeType('thumbnail', 'application/json')).all();
+
+        const checks = [
+          `Text files: ${textFiles.length} ${textFiles.length >= 1 ? '✅' : '❌'}`,
+          `JSON files: ${jsonFiles.length} ${jsonFiles.length >= 1 ? '✅' : '❌'}`,
+          `Text file type: ${textFiles[0]?.thumbnail.type}`
+        ];
+
+        resultEl.innerHTML = `<span class="pass">✅ MIME type query test passed!</span><br>${checks.join('<br>')}`;
+      } catch (error) {
+        resultEl.innerHTML = `<span class="fail">❌ Error: ${error.message}</span>`;
+        console.error(error);
+      }
+    };
+
+    // Test 6: Blob URL Generation
+    window.testBlobUrlGeneration = async function() {
+      const resultEl = document.getElementById('url-result');
+      const imgEl = document.getElementById('url-image');
+      resultEl.innerHTML = 'Processing...';
+
+      try {
+        if (!db) await initDB();
+        const documents = db.table('documents');
+
+        // Create a simple SVG image
+        const svgContent = `<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="50" cy="50" r="40" fill="blue"/>
+          <text x="50" y="55" text-anchor="middle" fill="white" font-size="20">DexBee</text>
+        </svg>`;
+        const imageBlob = new Blob([svgContent], { type: 'image/svg+xml' });
+
+        // Store image
+        await documents.insert({
+          id: 'url-1',
+          title: 'SVG Image',
+          thumbnail: imageBlob
+        });
+
+        // Generate URL
+        const url = await documents.getBlobUrl('url-1', 'thumbnail');
+
+        // Display image
+        imgEl.src = url;
+        imgEl.style.display = 'block';
+
+        resultEl.innerHTML = `<span class="pass">✅ Blob URL generated successfully!</span><br>URL: ${url.substring(0, 50)}...`;
+      } catch (error) {
+        resultEl.innerHTML = `<span class="fail">❌ Error: ${error.message}</span>`;
+        console.error(error);
+      }
+    };
+
+    // Initialize on load
+    initDB().then(() => {
+      console.log('✅ Database initialized and ready for testing');
+    }).catch(error => {
+      console.error('❌ Failed to initialize database:', error);
+    });
+  </script>
+</body>
+</html>

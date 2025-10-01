@@ -1,6 +1,7 @@
 import type {
+  BlobFieldDefinition,
   DatabaseSchema,
-  FieldDefinition,
+  ExtendedFieldDefinition,
   FieldType,
   Migration,
   RelationshipDefinition,
@@ -17,6 +18,9 @@ export class SchemaManager implements ISchemaManager {
     'date',
     'object',
     'array',
+    'blob',
+    'file',
+    'arraybuffer',
   ]
 
   constructor(public readonly schema: DatabaseSchema) {}
@@ -90,13 +94,18 @@ export class SchemaManager implements ISchemaManager {
   private validateFieldDefinition(
     tableName: string,
     fieldName: string,
-    fieldDef: FieldDefinition,
+    fieldDef: ExtendedFieldDefinition,
   ): void {
     if (!this.validFieldTypes.includes(fieldDef.type)) {
       throw new DexBeeError(
         DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
         `Invalid field type '${fieldDef.type}' for field '${fieldName}' in table '${tableName}'. Valid types: ${this.validFieldTypes.join(', ')}`,
       )
+    }
+
+    // Validate blob-specific fields
+    if (fieldDef.type === 'blob' || fieldDef.type === 'file' || fieldDef.type === 'arraybuffer') {
+      this.validateBlobFieldDefinition(tableName, fieldName, fieldDef as BlobFieldDefinition)
     }
 
     // Validate default function if present
@@ -131,6 +140,72 @@ export class SchemaManager implements ISchemaManager {
         throw new DexBeeError(
           DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
           `Foreign key in field '${fieldName}' of table '${tableName}' references non-existent field '${referencedKey}' in table '${referencedTable}'`,
+        )
+      }
+    }
+  }
+
+  private validateBlobFieldDefinition(
+    tableName: string,
+    fieldName: string,
+    fieldDef: BlobFieldDefinition,
+  ): void {
+    // Validate maxSize
+    if (fieldDef.maxSize !== undefined && (typeof fieldDef.maxSize !== 'number' || fieldDef.maxSize <= 0)) {
+      throw new DexBeeError(
+        DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
+        `maxSize for blob field '${fieldName}' in table '${tableName}' must be a positive number`,
+      )
+    }
+
+    // Validate allowedTypes
+    if (fieldDef.allowedTypes !== undefined) {
+      if (!Array.isArray(fieldDef.allowedTypes)) {
+        throw new DexBeeError(
+          DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
+          `allowedTypes for blob field '${fieldName}' in table '${tableName}' must be an array`,
+        )
+      }
+      if (fieldDef.allowedTypes.some(type => typeof type !== 'string')) {
+        throw new DexBeeError(
+          DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
+          `allowedTypes for blob field '${fieldName}' in table '${tableName}' must contain only strings`,
+        )
+      }
+    }
+  }
+
+  private validateBlobField(
+    tableName: string,
+    fieldName: string,
+    value: Blob | File | ArrayBuffer,
+    fieldDef: BlobFieldDefinition,
+  ): void {
+    // For ArrayBuffer, only check size
+    if (value instanceof ArrayBuffer) {
+      if (fieldDef.maxSize && value.byteLength > fieldDef.maxSize) {
+        throw new DexBeeError(
+          DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
+          `ArrayBuffer size ${value.byteLength} for field '${fieldName}' in table '${tableName}' exceeds maximum ${fieldDef.maxSize}`,
+        )
+      }
+      return
+    }
+
+    // For Blob and File, check size and MIME type
+    if (fieldDef.maxSize && value.size > fieldDef.maxSize) {
+      throw new DexBeeError(
+        DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
+        `Blob size ${value.size} for field '${fieldName}' in table '${tableName}' exceeds maximum ${fieldDef.maxSize}`,
+      )
+    }
+
+    if (fieldDef.allowedTypes) {
+      // Treat empty strings as invalid MIME types
+      if (!value.type || !fieldDef.allowedTypes.includes(value.type)) {
+        throw new DexBeeError(
+          DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
+          `MIME type '${value.type || '(empty)'}' for field '${fieldName}' in table '${tableName}' is not allowed. Allowed types: ${fieldDef.allowedTypes.join(', ')}`,
         )
       }
     }
@@ -350,6 +425,11 @@ export class SchemaManager implements ISchemaManager {
         )
       }
 
+      // Blob-specific validation
+      if (fieldDef.type === 'blob' || fieldDef.type === 'file' || fieldDef.type === 'arraybuffer') {
+        this.validateBlobField(tableName, fieldName, value, fieldDef as BlobFieldDefinition)
+      }
+
       // Custom validation
       if (fieldDef.validate && !fieldDef.validate(value)) {
         throw new DexBeeError(
@@ -400,10 +480,21 @@ export class SchemaManager implements ISchemaManager {
           && value !== null
           && !Array.isArray(value)
           && !(value instanceof Date)
+          && !(value instanceof Blob)
+          && !(value instanceof ArrayBuffer)
         )
       }
       case 'array': {
         return Array.isArray(value)
+      }
+      case 'blob': {
+        return value instanceof Blob
+      }
+      case 'file': {
+        return value instanceof File
+      }
+      case 'arraybuffer': {
+        return value instanceof ArrayBuffer
       }
       default: {
         return false

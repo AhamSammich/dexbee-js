@@ -276,12 +276,17 @@ export {
   lt,
   /** Less than or equal operator: field <= value */
   lte,
+  mimeType,
   /** Logical NOT operator for negating conditions */
   not,
   /** @deprecated Use not(inArray(...)) instead. This function will be removed in a future version. */
   notIn,
   /** Logical OR operator for alternative conditions */
   or,
+  sizeBetween,
+  // Blob-specific operators
+  sizeGt,
+  sizeLt,
 } from './query/operators.js'
 
 /**
@@ -433,8 +438,11 @@ export { TransformDataOperation } from './migration/operations/transform-data-op
  * ```
  */
 export type {
+  BlobFieldDefinition,
+  BlobMetadata,
   /** Complete database schema definition with tables and version */
   DatabaseSchema,
+  ExtendedFieldDefinition,
   /** Individual field definition with type and constraints */
   FieldDefinition,
   /** Valid field data types: string, number, boolean, date, object, array */
@@ -466,6 +474,7 @@ export type {
  * ```
  */
 export type {
+  BlobQueryOptions,
   /** Comparison operators: 'eq', 'gt', 'lt', etc. */
   ComparisonOperator,
   /** Logical operators: 'and', 'or', 'not' */
@@ -642,7 +651,10 @@ export class DexBee {
    *
    * @see {@link create} for manual connection control
    */
-  static async connect(name: string, schema: DatabaseSchema): Promise<Database> {
+  static async connect(
+    name: string,
+    schema: DatabaseSchema,
+  ): Promise<Database> {
     const db = new Database(name, schema)
     await db.connect()
     return db

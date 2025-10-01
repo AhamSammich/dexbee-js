@@ -323,6 +323,11 @@ export class QueryExecutor implements IQueryExecutor {
 
     const fieldValue = record[condition.field as string]
 
+    // Handle blob-specific operators
+    if (condition.operator.startsWith('blob')) {
+      return this.evaluateBlobCondition(fieldValue, condition)
+    }
+
     switch (condition.operator) {
       case 'eq': {
         return fieldValue === condition.value
@@ -355,6 +360,55 @@ export class QueryExecutor implements IQueryExecutor {
         return false
       }
     }
+  }
+
+  private evaluateBlobCondition(fieldValue: any, condition: WhereCondition): boolean {
+    // Handle ArrayBuffer
+    if (fieldValue instanceof ArrayBuffer) {
+      switch (condition.operator) {
+        case 'blobSizeGt': {
+          return fieldValue.byteLength > condition.value
+        }
+        case 'blobSizeLt': {
+          return fieldValue.byteLength < condition.value
+        }
+        case 'blobSizeBetween': {
+          if (condition.values && condition.values.length === 2) {
+            return fieldValue.byteLength >= condition.values[0] && fieldValue.byteLength <= condition.values[1]
+          }
+          return false
+        }
+        default: {
+          return false
+        }
+      }
+    }
+
+    // Handle Blob and File
+    if (fieldValue instanceof Blob) {
+      switch (condition.operator) {
+        case 'blobSizeGt': {
+          return fieldValue.size > condition.value
+        }
+        case 'blobSizeLt': {
+          return fieldValue.size < condition.value
+        }
+        case 'blobSizeBetween': {
+          if (condition.values && condition.values.length === 2) {
+            return fieldValue.size >= condition.values[0] && fieldValue.size <= condition.values[1]
+          }
+          return false
+        }
+        case 'blobMimeType': {
+          return fieldValue.type === condition.value
+        }
+        default: {
+          return false
+        }
+      }
+    }
+
+    return false
   }
 
   private evaluateLogicalCondition(record: any, condition: WhereCondition): boolean {

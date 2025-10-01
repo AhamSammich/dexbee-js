@@ -6,6 +6,7 @@ export default antfu({
     'unused-imports/no-unused-vars': 'off',
     'no-console': 'off',
     'unicorn/switch-case-braces': 'error',
+    'style/brace-style': 'off',
   },
   ignores: ['dist', '*.md'],
 })

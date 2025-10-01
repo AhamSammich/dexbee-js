@@ -1,4 +1,5 @@
 import type { ITransactionWrapper } from '../core/interfaces.js'
+import type { BlobMetadata } from '../types/schema.js'
 import type { QueryBuilder } from './query-builder.js'
 import { DexBeeError, DexBeeErrorCode } from '../types/errors.js'
 import { createQueryBuilder } from './query-builder.js'
@@ -257,5 +258,117 @@ export class Table<T = any> {
         }
       }
     })
+  }
+
+  // Blob-specific operations
+  async insertWithBlob(data: Partial<T>, blobs: Partial<Record<keyof T, Blob | File | ArrayBuffer>>): Promise<T> {
+    const fullData = { ...data, ...blobs }
+    return this.insert(fullData as Partial<T>)
+  }
+
+  async updateBlob(id: any, field: keyof T, blob: Blob | File | ArrayBuffer): Promise<T> {
+    return this.update(id, { [field]: blob } as Partial<T>)
+  }
+
+  /**
+   * Creates an object URL for a blob field that can be used in the browser.
+   *
+   * ⚠️ IMPORTANT: The returned URL must be revoked to prevent memory leaks!
+   * Call URL.revokeObjectURL(url) when the URL is no longer needed.
+   *
+   * Example:
+   * ```typescript
+   * const url = await table.getBlobUrl(1, 'image')
+   * // Use the URL (e.g., set as img src)
+   * URL.revokeObjectURL(url) // Clean up to prevent memory leaks
+   * ```
+   *
+   * @param id - The record ID
+   * @param field - The blob field name
+   * @returns Object URL for the blob
+   */
+  async getBlobUrl(id: any, field: keyof T): Promise<string> {
+    const record = await this.findById(id)
+    if (!record) {
+      throw new DexBeeError(
+        DexBeeErrorCode.TRANSACTION_FAILED,
+        `Record with ID ${id} not found`,
+      )
+    }
+
+    const blob = record[field]
+    if (!(blob instanceof Blob)) {
+      throw new DexBeeError(
+        DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
+        `Field '${String(field)}' is not a Blob or File`,
+      )
+    }
+
+    return URL.createObjectURL(blob)
+  }
+
+  async getBlobMetadata(id: any, field: keyof T): Promise<BlobMetadata> {
+    const record = await this.findById(id)
+    if (!record) {
+      throw new DexBeeError(
+        DexBeeErrorCode.TRANSACTION_FAILED,
+        `Record with ID ${id} not found`,
+      )
+    }
+
+    const value = record[field]
+
+    // Handle ArrayBuffer
+    if (value instanceof ArrayBuffer) {
+      return {
+        size: value.byteLength,
+        type: 'application/octet-stream',
+      }
+    }
+
+    // Handle Blob and File
+    if (value instanceof Blob) {
+      const metadata: BlobMetadata = {
+        size: value.size,
+        type: value.type,
+      }
+
+      if (value instanceof File) {
+        metadata.name = value.name
+        metadata.lastModified = value.lastModified
+      }
+
+      return metadata
+    }
+
+    throw new DexBeeError(
+      DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
+      `Field '${String(field)}' is not a Blob, File, or ArrayBuffer`,
+    )
+  }
+
+  async streamBlob(id: any, field: keyof T): Promise<ReadableStream> {
+    const record = await this.findById(id)
+    if (!record) {
+      throw new DexBeeError(
+        DexBeeErrorCode.TRANSACTION_FAILED,
+        `Record with ID ${id} not found`,
+      )
+    }
+
+    const blob = record[field]
+    if (!(blob instanceof Blob)) {
+      throw new DexBeeError(
+        DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
+        `Field '${String(field)}' is not a Blob or File`,
+      )
+    }
+
+    return blob.stream()
+  }
+
+  async insertManyWithBlobs(records: Array<{ data: Partial<T>, blobs: Partial<Record<keyof T, Blob | File | ArrayBuffer>> }>): Promise<T[]> {
+    const fullRecords = records.map(({ data, blobs }) => ({ ...data, ...blobs }))
+    return this.insertMany(fullRecords as Partial<T>[])
   }
 }
