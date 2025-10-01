@@ -286,6 +286,24 @@ export function not<T>(condition: WhereCondition<T>): WhereCondition<T> {
 }
 
 // Blob-specific operators
+
+/**
+ * Creates a condition to match blob fields with size greater than the specified bytes.
+ * Works with Blob, File, and ArrayBuffer fields.
+ *
+ * @template T The type representing the table/entity being queried
+ * @param field - The blob field name to check
+ * @param bytes - Minimum size in bytes (exclusive)
+ * @returns A WhereCondition for blob size comparison
+ *
+ * @example
+ * ```typescript
+ * // Find files larger than 1MB
+ * const largeFiles = await fileTable
+ *   .where(sizeGt('content', 1024 * 1024))
+ *   .all()
+ * ```
+ */
 export function sizeGt<T>(field: keyof T, bytes: number): WhereCondition<T> {
   return {
     type: 'comparison',
@@ -295,6 +313,23 @@ export function sizeGt<T>(field: keyof T, bytes: number): WhereCondition<T> {
   }
 }
 
+/**
+ * Creates a condition to match blob fields with size less than the specified bytes.
+ * Works with Blob, File, and ArrayBuffer fields.
+ *
+ * @template T The type representing the table/entity being queried
+ * @param field - The blob field name to check
+ * @param bytes - Maximum size in bytes (exclusive)
+ * @returns A WhereCondition for blob size comparison
+ *
+ * @example
+ * ```typescript
+ * // Find small thumbnails under 100KB
+ * const thumbnails = await imageTable
+ *   .where(sizeLt('thumbnail', 100 * 1024))
+ *   .all()
+ * ```
+ */
 export function sizeLt<T>(field: keyof T, bytes: number): WhereCondition<T> {
   return {
     type: 'comparison',
@@ -304,6 +339,25 @@ export function sizeLt<T>(field: keyof T, bytes: number): WhereCondition<T> {
   }
 }
 
+/**
+ * Creates a condition to match blob fields with size between the specified byte range.
+ * The range is inclusive of both min and max values.
+ * Works with Blob, File, and ArrayBuffer fields.
+ *
+ * @template T The type representing the table/entity being queried
+ * @param field - The blob field name to check
+ * @param min - Minimum size in bytes (inclusive)
+ * @param max - Maximum size in bytes (inclusive)
+ * @returns A WhereCondition for blob size range comparison
+ *
+ * @example
+ * ```typescript
+ * // Find medium-sized images between 100KB and 1MB
+ * const mediumImages = await imageTable
+ *   .where(sizeBetween('image', 100 * 1024, 1024 * 1024))
+ *   .all()
+ * ```
+ */
 export function sizeBetween<T>(field: keyof T, min: number, max: number): WhereCondition<T> {
   return {
     type: 'comparison',
@@ -313,6 +367,28 @@ export function sizeBetween<T>(field: keyof T, min: number, max: number): WhereC
   }
 }
 
+/**
+ * Creates a condition to match blob fields with the specified MIME type.
+ * Only works with Blob and File fields (not ArrayBuffer).
+ *
+ * @template T The type representing the table/entity being queried
+ * @param field - The blob field name to check
+ * @param type - The MIME type to match (e.g., 'image/jpeg', 'text/plain')
+ * @returns A WhereCondition for blob MIME type comparison
+ *
+ * @example
+ * ```typescript
+ * // Find all JPEG images
+ * const jpegImages = await fileTable
+ *   .where(mimeType('content', 'image/jpeg'))
+ *   .all()
+ *
+ * // Find all text files
+ * const textFiles = await fileTable
+ *   .where(mimeType('content', 'text/plain'))
+ *   .all()
+ * ```
+ */
 export function mimeType<T>(field: keyof T, type: string): WhereCondition<T> {
   return {
     type: 'comparison',

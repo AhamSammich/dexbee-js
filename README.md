@@ -17,6 +17,8 @@ A modern TypeScript IndexedDB ORM with SQL-like query builder interface. Build p
 - 🌐 **Modern ESM** - Full ESM support with TypeScript declarations
 - 🎨 **Query builder** - Intuitive, chainable query interface
 - 🌍 **Browser-focused** - Built specifically for IndexedDB in browser environments
+- 📎 **Blob storage** - Native support for Files, Blobs, and binary data with streaming
+- 🧪 **Comprehensive testing** - Unit tests, browser integration tests, and manual testing tools
 
 ## 📦 Installation
 
@@ -269,6 +271,53 @@ const results = await users
   .limit(20)
   .offset(10)
   .all()
+
+// Blob-specific queries
+import { sizeGt, sizeLt, mimeType, sizeBetween } from 'dexbee-js'
+
+// Find large files
+const largeFiles = await fileTable
+  .where(sizeGt('content', 1024 * 1024)) // > 1MB
+  .all()
+
+// Find images within size range
+const mediumImages = await fileTable
+  .where(
+    and(
+      mimeType('content', 'image/jpeg'),
+      sizeBetween('content', 100 * 1024, 500 * 1024) // 100KB - 500KB
+    )
+  )
+  .all()
+```
+
+### Blob Storage
+
+DexBee provides comprehensive support for storing and retrieving binary data:
+
+```typescript
+// Store files and blobs
+const fileTable = db.table('documents')
+
+// Insert with file/blob data
+const file = new File(['Hello world'], 'document.txt', { type: 'text/plain' })
+await fileTable.insertWithBlob(
+  { title: 'My Document', createdAt: new Date() },
+  { content: file }
+)
+
+// Update blob data
+const newFile = new File(['Updated content'], 'document.txt')
+await fileTable.updateBlob(1, 'content', newFile)
+
+// Get blob metadata
+const metadata = await fileTable.getBlobMetadata(1, 'content')
+console.log(metadata) // { size: 15, type: 'text/plain', name: 'document.txt', ... }
+
+// Create object URL (remember to revoke!)
+const url = await fileTable.getBlobUrl(1, 'content')
+// Use URL for downloads, previews, etc.
+URL.revokeObjectURL(url) // Clean up memory
 ```
 
 ### Tree Shaking
@@ -299,6 +348,7 @@ import { eq, and } from 'dexbee-js/operators'
 
 - **Comparison**: `eq`, `gt`, `gte`, `lt`, `lte`, `between`, `in_`, `notIn`
 - **Logical**: `and`, `or`, `not`
+- **Blob-specific**: `sizeGt`, `sizeLt`, `sizeBetween`, `mimeType`
 
 ### Migration Operations
 
@@ -309,17 +359,64 @@ import { eq, and } from 'dexbee-js/operators'
 
 ## 🧪 Testing
 
-DexBee includes comprehensive test coverage. Run tests with:
+DexBee includes comprehensive test coverage with both unit tests and browser integration tests:
+
+### Unit Tests
+Run the standard test suite (uses fake-indexeddb for Node.js compatibility):
 
 ```bash
 npm test
 ```
 
-For test coverage:
+### Browser Integration Tests
+Run tests in real browsers with actual IndexedDB (essential for blob storage):
+
+```bash
+npm run test:integration:browser
+```
+
+### Run All Tests
+Execute both unit and browser integration tests:
+
+```bash
+npm run test:all
+```
+
+### Test Coverage
+Generate detailed coverage reports:
 
 ```bash
 npm run test:coverage
 ```
+
+### Interactive Testing
+Use the test UI for development:
+
+```bash
+# Unit test UI
+npm run test:ui
+
+# Browser test UI
+npm run test:integration:browser:ui
+```
+
+### Manual Browser Testing
+For manual testing of blob storage and other browser-specific features, DexBee includes an interactive HTML test interface:
+
+```bash
+# Build the library first
+npm run build
+
+# Start a local server (choose one):
+python3 -m http.server 8080
+# OR
+npx http-server -p 8080
+
+# Open in browser
+open http://localhost:8080/tests/manual/blob-test.html
+```
+
+The manual test interface allows you to test blob storage operations interactively in a real browser environment.
 
 ## 🤝 Contributing
 

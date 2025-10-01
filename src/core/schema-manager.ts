@@ -10,6 +10,10 @@ import type {
 import type { ISchemaManager } from './interfaces.js'
 import { DexBeeError, DexBeeErrorCode } from '../types/errors.js'
 
+/**
+ * Manages database schema validation, migrations, and data validation.
+ * Ensures schema integrity and provides validation for field definitions and data.
+ */
 export class SchemaManager implements ISchemaManager {
   private readonly validFieldTypes: FieldType[] = [
     'string',
@@ -23,8 +27,30 @@ export class SchemaManager implements ISchemaManager {
     'arraybuffer',
   ]
 
+  /**
+   * Creates a new SchemaManager instance.
+   *
+   * @param schema - The database schema to manage and validate
+   */
   constructor(public readonly schema: DatabaseSchema) {}
 
+  /**
+   * Validates the entire database schema structure.
+   * Checks version, table definitions, field types, relationships, and indexes.
+   *
+   * @throws {DexBeeError} When schema is invalid or contains errors
+   *
+   * @example
+   * ```typescript
+   * const schemaManager = new SchemaManager(mySchema)
+   * try {
+   *   schemaManager.validateSchema()
+   *   console.log('Schema is valid')
+   * } catch (error) {
+   *   console.error('Schema validation failed:', error.message)
+   * }
+   * ```
+   */
   validateSchema(): void {
     if (!this.schema.version || this.schema.version < 1) {
       throw new DexBeeError(
@@ -52,6 +78,15 @@ export class SchemaManager implements ISchemaManager {
     })
   }
 
+  /**
+   * Validates a single table configuration.
+   * Checks field definitions, primary key, and index configurations.
+   *
+   * @private
+   * @param tableName - Name of the table being validated
+   * @param config - Table configuration to validate
+   * @throws {DexBeeError} When table configuration is invalid
+   */
   private validateTableConfig(tableName: string, config: TableConfig): void {
     if (!config.schema || Object.keys(config.schema).length === 0) {
       throw new DexBeeError(
@@ -91,6 +126,16 @@ export class SchemaManager implements ISchemaManager {
     }
   }
 
+  /**
+   * Validates a single field definition within a table schema.
+   * Checks field type, default functions, validation functions, and foreign key references.
+   *
+   * @private
+   * @param tableName - Name of the table containing the field
+   * @param fieldName - Name of the field being validated
+   * @param fieldDef - Field definition to validate
+   * @throws {DexBeeError} When field definition is invalid
+   */
   private validateFieldDefinition(
     tableName: string,
     fieldName: string,
@@ -145,6 +190,16 @@ export class SchemaManager implements ISchemaManager {
     }
   }
 
+  /**
+   * Validates the schema definition for blob-type fields (blob, file, arraybuffer).
+   * Checks that maxSize is a positive number and allowedTypes is a valid array of strings.
+   *
+   * @private
+   * @param tableName - Name of the table containing the field
+   * @param fieldName - Name of the blob field being validated
+   * @param fieldDef - The blob field definition to validate
+   * @throws {DexBeeError} When blob field definition is invalid
+   */
   private validateBlobFieldDefinition(
     tableName: string,
     fieldName: string,
@@ -175,6 +230,17 @@ export class SchemaManager implements ISchemaManager {
     }
   }
 
+  /**
+   * Validates blob field data against the schema constraints.
+   * Checks size limits for all blob types and MIME type restrictions for Blob/File.
+   *
+   * @private
+   * @param tableName - Name of the table containing the field
+   * @param fieldName - Name of the blob field being validated
+   * @param value - The blob data to validate (Blob, File, or ArrayBuffer)
+   * @param fieldDef - The blob field definition with constraints
+   * @throws {DexBeeError} When blob data violates schema constraints
+   */
   private validateBlobField(
     tableName: string,
     fieldName: string,
@@ -211,6 +277,14 @@ export class SchemaManager implements ISchemaManager {
     }
   }
 
+  /**
+   * Validates all relationships defined for a table.
+   *
+   * @private
+   * @param tableName - Name of the table containing relationships
+   * @param relationships - Object mapping relationship names to definitions
+   * @throws {DexBeeError} When any relationship is invalid
+   */
   private validateRelationships(
     tableName: string,
     relationships: { [key: string]: RelationshipDefinition },
@@ -222,6 +296,16 @@ export class SchemaManager implements ISchemaManager {
     )
   }
 
+  /**
+   * Validates a single relationship definition.
+   * Checks that referenced tables and fields exist, and validates relationship constraints.
+   *
+   * @private
+   * @param tableName - Name of the table containing the relationship
+   * @param relationshipName - Name of the relationship being validated
+   * @param relationship - Relationship definition to validate
+   * @throws {DexBeeError} When relationship definition is invalid
+   */
   private validateRelationship(
     tableName: string,
     relationshipName: string,
@@ -328,6 +412,24 @@ export class SchemaManager implements ISchemaManager {
     }
   }
 
+  /**
+   * Applies schema migrations to the database.
+   * Creates missing object stores and indexes based on schema definition.
+   *
+   * @param db - The IndexedDB database instance
+   * @param oldVersion - Previous database version
+   * @param newVersion - New database version to migrate to
+   *
+   * @example
+   * ```typescript
+   * // Called during database upgrade
+   * const request = indexedDB.open('mydb', 2)
+   * request.onupgradeneeded = (event) => {
+   *   const db = event.target.result
+   *   schemaManager.applyMigrations(db, event.oldVersion, event.newVersion)
+   * }
+   * ```
+   */
   applyMigrations(
     db: IDBDatabase,
     oldVersion: number,
@@ -342,6 +444,15 @@ export class SchemaManager implements ISchemaManager {
     })
   }
 
+  /**
+   * Creates an IndexedDB object store based on table configuration.
+   * Sets up primary key, auto-increment, and creates all defined indexes.
+   *
+   * @private
+   * @param db - The IndexedDB database instance
+   * @param name - Name of the object store to create
+   * @param config - Table configuration defining store structure
+   */
   private createObjectStore(
     db: IDBDatabase,
     name: string,
@@ -370,6 +481,20 @@ export class SchemaManager implements ISchemaManager {
     }
   }
 
+  /**
+   * Generates a migration object to transform from old schema to new schema.
+   * Currently a placeholder implementation for future migration features.
+   *
+   * @param oldSchema - The previous database schema
+   * @param newSchema - The new database schema to migrate to
+   * @returns Migration object with version and up function
+   *
+   * @example
+   * ```typescript
+   * const migration = schemaManager.generateMigration(oldSchema, newSchema)
+   * console.log(`Generated migration to version ${migration.version}`)
+   * ```
+   */
   generateMigration(
     oldSchema: DatabaseSchema,
     newSchema: DatabaseSchema,
@@ -384,6 +509,28 @@ export class SchemaManager implements ISchemaManager {
     }
   }
 
+  /**
+   * Validates data against the table schema definition.
+   * Checks required fields, data types, blob constraints, and custom validation rules.
+   *
+   * @param tableName - Name of the table to validate against
+   * @param data - The data object to validate
+   * @throws {DexBeeError} When data fails validation or table not found
+   *
+   * @example
+   * ```typescript
+   * try {
+   *   schemaManager.validateData('users', {
+   *     name: 'John Doe',
+   *     email: 'john@example.com',
+   *     age: 30
+   *   })
+   *   console.log('Data is valid')
+   * } catch (error) {
+   *   console.error('Validation failed:', error.message)
+   * }
+   * ```
+   */
   validateData(tableName: string, data: any): void {
     const tableConfig = this.schema.tables[tableName]
     if (!tableConfig) {
@@ -440,6 +587,24 @@ export class SchemaManager implements ISchemaManager {
     })
   }
 
+  /**
+   * Applies default values to data based on schema field definitions.
+   * Only applies defaults for fields that are undefined in the input data.
+   *
+   * @param tableName - Name of the table to apply defaults for
+   * @param data - The data object to apply defaults to
+   * @returns New object with default values applied
+   * @throws {DexBeeError} When table is not found in schema
+   *
+   * @example
+   * ```typescript
+   * const dataWithDefaults = schemaManager.applyDefaults('users', {
+   *   name: 'John Doe',
+   *   email: 'john@example.com'
+   *   // createdAt will get default value from schema
+   * })
+   * ```
+   */
   applyDefaults(tableName: string, data: any): any {
     const tableConfig = this.schema.tables[tableName]
     if (!tableConfig) {
@@ -460,6 +625,15 @@ export class SchemaManager implements ISchemaManager {
     return result
   }
 
+  /**
+   * Checks if a value matches the expected field type.
+   * Performs runtime type checking for all supported field types.
+   *
+   * @private
+   * @param value - The value to type-check
+   * @param expectedType - The expected field type from schema
+   * @returns true if value matches expected type, false otherwise
+   */
   private isValidType(value: any, expectedType: FieldType): boolean {
     switch (expectedType) {
       case 'string': {
