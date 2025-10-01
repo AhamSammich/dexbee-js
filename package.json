@@ -9,7 +9,7 @@
   "homepage": "https://github.com/AhamSammich/dexbee-js#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/AhamSammich/dexbee-js.git"
+    "url": "git+https://github.com/AhamSammich/dexbee-js.git"
   },
   "bugs": {
     "url": "https://github.com/AhamSammich/dexbee-js/issues"
