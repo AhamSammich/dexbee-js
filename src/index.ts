@@ -268,10 +268,10 @@ export {
   gt,
   /** Greater than or equal operator: field >= value */
   gte,
-  /** IN operator: field IN (value1, value2, ...) - Recommended over in_ */
-  inArray,
   /** @deprecated Use inArray instead. This alias will be removed in a future version. */
   in_,
+  /** IN operator: field IN (value1, value2, ...) - Recommended over in_ */
+  inArray,
   /** Less than operator: field < value */
   lt,
   /** Less than or equal operator: field <= value */

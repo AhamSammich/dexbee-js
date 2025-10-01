@@ -14,11 +14,11 @@ import { DexBeeError, DexBeeErrorCode } from '../types/errors.js'
 
 /**
  * Core query execution engine that handles SQL-like operations against IndexedDB.
- * 
+ *
  * The QueryExecutor is responsible for translating high-level query operations into
  * efficient IndexedDB operations, managing transactions, optimizing with indexes,
  * and handling relationships.
- * 
+ *
  * @example
  * ```typescript
  * const executor = new QueryExecutor(getTransaction, schema)
@@ -32,7 +32,7 @@ import { DexBeeError, DexBeeErrorCode } from '../types/errors.js'
 export class QueryExecutor implements IQueryExecutor {
   /**
    * Creates a new QueryExecutor instance.
-   * 
+   *
    * @param getTransaction - Function to obtain database transactions for the required stores
    * @param schema - Database schema containing table definitions and relationships
    */
@@ -43,26 +43,26 @@ export class QueryExecutor implements IQueryExecutor {
 
   /**
    * Executes a query against the specified table with the given options.
-   * 
+   *
    * This is the main query execution method that handles:
    * - WHERE condition filtering with automatic index optimization
    * - Field selection (SELECT clause)
    * - Sorting (ORDER BY clause)
    * - Pagination (LIMIT/OFFSET)
    * - Relationship loading (JOIN-like operations)
-   * 
+   *
    * The executor automatically optimizes queries by:
    * - Using IndexedDB indexes when available for comparison operations
    * - Falling back to cursor scans for complex conditions
    * - Applying filters and transformations in the most efficient order
-   * 
+   *
    * @template T The type representing the table/entity being queried
    * @param tableName - Name of the table to query
    * @param options - Query configuration including conditions, sorting, pagination, etc.
    * @returns Promise resolving to query results with data array and total count
-   * 
+   *
    * @throws {DexBeeError} When query execution fails due to transaction errors
-   * 
+   *
    * @example
    * ```typescript
    * // Simple query with conditions
@@ -76,10 +76,10 @@ export class QueryExecutor implements IQueryExecutor {
    *   limit: 20,
    *   offset: 0
    * })
-   * 
+   *
    * console.log(`Found ${result.count} users, showing ${result.data.length}`)
    * ```
-   * 
+   *
    * @example
    * ```typescript
    * // Query with relationships
@@ -754,28 +754,28 @@ export class QueryExecutor implements IQueryExecutor {
 
   /**
    * Executes aggregation operations (COUNT, SUM, AVG, MAX, MIN) on the specified table.
-   * 
+   *
    * This method performs statistical calculations on table data, supporting both
    * simple aggregations and grouped aggregations with HAVING clauses.
-   * 
+   *
    * Supported aggregation functions:
    * - COUNT: Counts matching records
    * - SUM: Sums numeric values in a field
    * - AVG: Calculates average of numeric values
    * - MAX: Finds maximum value in a field
    * - MIN: Finds minimum value in a field
-   * 
+   *
    * Aggregations can be:
    * - Simple: Single result across all matching records
    * - Grouped: Multiple results grouped by specified fields with optional HAVING filters
-   * 
+   *
    * @template T The type representing the table/entity being queried
    * @param tableName - Name of the table to aggregate
    * @param options - Query options including aggregation function, field, grouping, and conditions
    * @returns Promise resolving to either simple aggregation result or grouped results
-   * 
+   *
    * @throws {DexBeeError} When aggregation function is not specified or execution fails
-   * 
+   *
    * @example
    * ```typescript
    * // Simple COUNT aggregation
@@ -785,7 +785,7 @@ export class QueryExecutor implements IQueryExecutor {
    * })
    * console.log(`Completed orders: ${result.value}`)
    * ```
-   * 
+   *
    * @example
    * ```typescript
    * // SUM with WHERE condition
@@ -795,7 +795,7 @@ export class QueryExecutor implements IQueryExecutor {
    * })
    * console.log(`Total revenue: $${result.value}`)
    * ```
-   * 
+   *
    * @example
    * ```typescript
    * // Grouped aggregation with HAVING
@@ -806,7 +806,7 @@ export class QueryExecutor implements IQueryExecutor {
    *     having: gt('_aggregated_value', 1000)
    *   }
    * })
-   * 
+   *
    * // result.groups contains array of { key: {region, product}, value, count }
    * for (const group of result.groups) {
    *   console.log(`${group.key.region} ${group.key.product}: $${group.value}`)
