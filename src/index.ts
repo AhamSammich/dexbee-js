@@ -229,15 +229,21 @@ export { Table } from './query/table.js'
  * Query operators for building WHERE conditions.
  *
  * These operators provide a SQL-like syntax for filtering data:
- * - Comparison: {@link eq}, {@link gt}, {@link gte}, {@link lt}, {@link lte}, {@link between}, {@link in_}, {@link notIn}
+ * - Comparison: {@link eq}, {@link gt}, {@link gte}, {@link lt}, {@link lte}, {@link between}, {@link inArray}
  * - Logical: {@link and}, {@link or}, {@link not}
  *
  * @example
  * ```ts
- * import { eq, gt, and, or } from 'dexbee-js'
+ * import { eq, gt, and, or, not, inArray } from 'dexbee-js'
  *
  * // Simple condition
  * .where(eq('name', 'John'))
+ *
+ * // IN operator
+ * .where(inArray('id', [1, 2, 3, 4]))
+ *
+ * // NOT IN operator (composable approach)
+ * .where(not(inArray('status', ['deleted', 'banned'])))
  *
  * // Complex condition
  * .where(
@@ -262,7 +268,9 @@ export {
   gt,
   /** Greater than or equal operator: field >= value */
   gte,
-  /** IN operator: field IN (value1, value2, ...) */
+  /** IN operator: field IN (value1, value2, ...) - Recommended over in_ */
+  inArray,
+  /** @deprecated Use inArray instead. This alias will be removed in a future version. */
   in_,
   /** Less than operator: field < value */
   lt,
@@ -270,7 +278,7 @@ export {
   lte,
   /** Logical NOT operator for negating conditions */
   not,
-  /** NOT IN operator: field NOT IN (value1, value2, ...) */
+  /** @deprecated Use not(inArray(...)) instead. This function will be removed in a future version. */
   notIn,
   /** Logical OR operator for alternative conditions */
   or,

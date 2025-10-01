@@ -12,12 +12,91 @@ import type { DatabaseSchema, RelationshipDefinition } from '../types/schema.js'
 import type { IQueryExecutor } from './interfaces.js'
 import { DexBeeError, DexBeeErrorCode } from '../types/errors.js'
 
+/**
+ * Core query execution engine that handles SQL-like operations against IndexedDB.
+ * 
+ * The QueryExecutor is responsible for translating high-level query operations into
+ * efficient IndexedDB operations, managing transactions, optimizing with indexes,
+ * and handling relationships.
+ * 
+ * @example
+ * ```typescript
+ * const executor = new QueryExecutor(getTransaction, schema)
+ * const result = await executor.execute('users', {
+ *   where: eq('status', 'active'),
+ *   orderBy: [{ field: 'name', direction: 'asc' }],
+ *   limit: 10
+ * })
+ * ```
+ */
 export class QueryExecutor implements IQueryExecutor {
+  /**
+   * Creates a new QueryExecutor instance.
+   * 
+   * @param getTransaction - Function to obtain database transactions for the required stores
+   * @param schema - Database schema containing table definitions and relationships
+   */
   constructor(
     private getTransaction: (stores: string[], mode: 'readonly' | 'readwrite') => Promise<ITransactionWrapper>,
     private schema: DatabaseSchema,
   ) {}
 
+  /**
+   * Executes a query against the specified table with the given options.
+   * 
+   * This is the main query execution method that handles:
+   * - WHERE condition filtering with automatic index optimization
+   * - Field selection (SELECT clause)
+   * - Sorting (ORDER BY clause)
+   * - Pagination (LIMIT/OFFSET)
+   * - Relationship loading (JOIN-like operations)
+   * 
+   * The executor automatically optimizes queries by:
+   * - Using IndexedDB indexes when available for comparison operations
+   * - Falling back to cursor scans for complex conditions
+   * - Applying filters and transformations in the most efficient order
+   * 
+   * @template T The type representing the table/entity being queried
+   * @param tableName - Name of the table to query
+   * @param options - Query configuration including conditions, sorting, pagination, etc.
+   * @returns Promise resolving to query results with data array and total count
+   * 
+   * @throws {DexBeeError} When query execution fails due to transaction errors
+   * 
+   * @example
+   * ```typescript
+   * // Simple query with conditions
+   * const result = await executor.execute('users', {
+   *   where: and(
+   *     eq('status', 'active'),
+   *     gt('age', 18)
+   *   ),
+   *   select: ['id', 'name', 'email'],
+   *   orderBy: [{ field: 'name', direction: 'asc' }],
+   *   limit: 20,
+   *   offset: 0
+   * })
+   * 
+   * console.log(`Found ${result.count} users, showing ${result.data.length}`)
+   * ```
+   * 
+   * @example
+   * ```typescript
+   * // Query with relationships
+   * const result = await executor.execute('users', {
+   *   where: eq('isActive', true),
+   *   include: [
+   *     {
+   *       name: 'posts',
+   *       select: ['title', 'publishedAt'],
+   *       where: eq('published', true),
+   *       orderBy: [{ field: 'publishedAt', direction: 'desc' }],
+   *       limit: 5
+   *     }
+   *   ]
+   * })
+   * ```
+   */
   async execute<T>(tableName: string, options: QueryOptions<T>): Promise<QueryResult<T>> {
     const tx = await this.getTransaction([tableName], 'readonly')
     const store = tx.getStore(tableName)
@@ -673,6 +752,67 @@ export class QueryExecutor implements IQueryExecutor {
     return result
   }
 
+  /**
+   * Executes aggregation operations (COUNT, SUM, AVG, MAX, MIN) on the specified table.
+   * 
+   * This method performs statistical calculations on table data, supporting both
+   * simple aggregations and grouped aggregations with HAVING clauses.
+   * 
+   * Supported aggregation functions:
+   * - COUNT: Counts matching records
+   * - SUM: Sums numeric values in a field
+   * - AVG: Calculates average of numeric values
+   * - MAX: Finds maximum value in a field
+   * - MIN: Finds minimum value in a field
+   * 
+   * Aggregations can be:
+   * - Simple: Single result across all matching records
+   * - Grouped: Multiple results grouped by specified fields with optional HAVING filters
+   * 
+   * @template T The type representing the table/entity being queried
+   * @param tableName - Name of the table to aggregate
+   * @param options - Query options including aggregation function, field, grouping, and conditions
+   * @returns Promise resolving to either simple aggregation result or grouped results
+   * 
+   * @throws {DexBeeError} When aggregation function is not specified or execution fails
+   * 
+   * @example
+   * ```typescript
+   * // Simple COUNT aggregation
+   * const result = await executor.aggregate('orders', {
+   *   where: eq('status', 'completed'),
+   *   aggregation: { function: 'count' }
+   * })
+   * console.log(`Completed orders: ${result.value}`)
+   * ```
+   * 
+   * @example
+   * ```typescript
+   * // SUM with WHERE condition
+   * const result = await executor.aggregate('orders', {
+   *   where: eq('status', 'paid'),
+   *   aggregation: { function: 'sum', field: 'amount' }
+   * })
+   * console.log(`Total revenue: $${result.value}`)
+   * ```
+   * 
+   * @example
+   * ```typescript
+   * // Grouped aggregation with HAVING
+   * const result = await executor.aggregate('sales', {
+   *   aggregation: { function: 'sum', field: 'amount' },
+   *   groupBy: {
+   *     fields: ['region', 'product'],
+   *     having: gt('_aggregated_value', 1000)
+   *   }
+   * })
+   * 
+   * // result.groups contains array of { key: {region, product}, value, count }
+   * for (const group of result.groups) {
+   *   console.log(`${group.key.region} ${group.key.product}: $${group.value}`)
+   * }
+   * ```
+   */
   async aggregate<T>(
     tableName: string,
     options: QueryOptions<T>,
