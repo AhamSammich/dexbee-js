@@ -1,4 +1,4 @@
-export type FieldType = 'string' | 'number' | 'boolean' | 'date' | 'object' | 'array'
+export type FieldType = 'string' | 'number' | 'boolean' | 'date' | 'object' | 'array' | 'blob' | 'file' | 'arraybuffer'
 
 export interface RelationshipDefinition {
   type: 'hasOne' | 'hasMany' | 'belongsTo' | 'belongsToMany'
@@ -26,8 +26,29 @@ export interface FieldDefinition {
   }
 }
 
+export interface BlobFieldDefinition extends Omit<FieldDefinition, 'type'> {
+  type: 'blob' | 'file' | 'arraybuffer'
+  maxSize?: number // Size limit in bytes
+  allowedTypes?: string[] // MIME types for file/blob validation
+  generateUrl?: boolean // Auto-generate object URLs for retrieval
+  metadata?: {
+    trackSize: boolean
+    trackType: boolean
+    trackLastModified: boolean // For File type
+  }
+}
+
+export interface BlobMetadata {
+  size: number
+  type: string
+  lastModified?: number
+  name?: string
+}
+
+export type ExtendedFieldDefinition = FieldDefinition | BlobFieldDefinition
+
 export interface TableSchema {
-  [fieldName: string]: FieldDefinition
+  [fieldName: string]: ExtendedFieldDefinition
 }
 
 export interface IndexDefinition {

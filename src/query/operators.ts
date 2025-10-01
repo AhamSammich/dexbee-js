@@ -284,3 +284,40 @@ export function not<T>(condition: WhereCondition<T>): WhereCondition<T> {
     conditions: [condition],
   }
 }
+
+// Blob-specific operators
+export function sizeGt<T>(field: keyof T, bytes: number): WhereCondition<T> {
+  return {
+    type: 'comparison',
+    operator: 'blobSizeGt',
+    field,
+    value: bytes,
+  }
+}
+
+export function sizeLt<T>(field: keyof T, bytes: number): WhereCondition<T> {
+  return {
+    type: 'comparison',
+    operator: 'blobSizeLt',
+    field,
+    value: bytes,
+  }
+}
+
+export function sizeBetween<T>(field: keyof T, min: number, max: number): WhereCondition<T> {
+  return {
+    type: 'comparison',
+    operator: 'blobSizeBetween',
+    field,
+    values: [min, max],
+  }
+}
+
+export function mimeType<T>(field: keyof T, type: string): WhereCondition<T> {
+  return {
+    type: 'comparison',
+    operator: 'blobMimeType',
+    field,
+    value: type,
+  }
+}

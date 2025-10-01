@@ -1,4 +1,4 @@
-export type ComparisonOperator = 'eq' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'in' | 'notIn'
+export type ComparisonOperator = 'eq' | 'gt' | 'gte' | 'lt' | 'lte' | 'between' | 'in' | 'notIn' | 'blobSizeGt' | 'blobSizeLt' | 'blobSizeBetween' | 'blobMimeType'
 export type LogicalOperator = 'and' | 'or' | 'not'
 export type AggregationFunction = 'sum' | 'avg' | 'max' | 'min' | 'count'
 
@@ -32,6 +32,12 @@ export interface GroupByQuery<T = any> {
   having?: WhereCondition<any> // Post-aggregation filtering
 }
 
+export interface BlobQueryOptions {
+  excludeBlobs?: string[] // Fields to exclude from results
+  generateUrls?: string[] // Fields to generate object URLs for
+  metadataOnly?: string[] // Fields to return metadata only
+}
+
 export interface QueryOptions<T = any> {
   select?: (keyof T)[]
   where?: WhereCondition<T>
@@ -44,6 +50,7 @@ export interface QueryOptions<T = any> {
   include?: RelationshipQuery[] // Relationships to include in results
   groupBy?: GroupByQuery<T> // Group by fields
   aggregation?: AggregationQuery<T> // Aggregation function
+  blob?: BlobQueryOptions // Blob-specific query options
 }
 
 export interface QueryResult<T = any> {
