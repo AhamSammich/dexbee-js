@@ -1,29 +1,10 @@
 // Query Builder Demo
 // This example demonstrates the SQL-like query interface
 
-import type { DatabaseSchema } from '../src/index.js'
-import { and, DexBee, eq, gt, not, or } from '../src/index.js'
-
-// Define types for type-safe queries
-interface User {
-  id: number
-  name: string
-  email: string
-  age: number
-  isActive: boolean
-  createdAt: Date
-}
-
-interface Post {
-  id: number
-  userId: number
-  title: string
-  content: string
-  published: boolean
-}
+import { and, defineSchema, DexBee, eq, gt, not, or } from '../src/index.js'
 
 // Define database schema
-const schema: DatabaseSchema = {
+const schema = defineSchema({
   version: 1,
   tables: {
     users: {
@@ -50,15 +31,15 @@ const schema: DatabaseSchema = {
       autoIncrement: true,
     },
   },
-}
+})
 
 async function demonstrateQueryBuilder(): Promise<void> {
   console.log('🚀 DexBee Query Builder Demo\n')
 
   // Connect to database
   const db = await DexBee.connect('demo-db', schema)
-  const users = db.table<User>('users')
-  const posts = db.table<Post>('posts')
+  const users = db.table('users')
+  const posts = db.table('posts')
 
   // 1. Insert sample data
   console.log('📝 Inserting sample data...')

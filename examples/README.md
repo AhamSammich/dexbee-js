@@ -4,17 +4,41 @@ This directory contains examples demonstrating different ways to use DexBee.
 
 ## Examples
 
-### 1. Phase 1 Demo (`phase1-demo.ts`)
-Complete demonstration of Phase 1 functionality including:
-- Schema definition and validation
-- Database connection management
-- Transaction handling
-- CRUD operations
-- Error handling
+### 1. Query Builder Demo (`query-builder-demo.ts`)
+Comprehensive demonstration of the SQL-like query interface:
+- Fluent query chaining: `select().where().orderBy().limit()`
+- Type-safe field selection with IntelliSense
+- Comparison operators: `eq`, `gt`, `lt`, `gte`, `lte`, `between`, `in`, `notIn`
+- Logical operators: `and`, `or`, `not`
+- Execution methods: `all()`, `first()`, `count()`
+- Complete CRUD operations
+- Multi-table operations
 
-Run with: `npx tsx examples/phase1-demo.ts`
+**Run with:**
+```bash
+pnpm tsx examples/query-builder-demo.ts
+```
 
-### 2. Script Tag Usage (`script-tag-usage.html`)
+### 2. Typed Schema Demo (`typed-schema-demo.ts`)
+Demonstrates fully typed schema definitions with automatic TypeScript inference:
+- Complete type safety similar to Supabase/Drizzle
+- Type-checked table names, fields, and operations
+- Automatic type inference from schema
+- Type-narrowing with `select()`
+- Compile-time validation of insert/update operations
+
+**Key features:**
+- Use `defineSchema()` helper for automatic type inference (no `as const` needed!)
+- Fully typed `db.table()` methods
+- TypeScript validates required fields
+- Type-safe relationship handling
+
+**Run with:**
+```bash
+pnpm tsx examples/typed-schema-demo.ts
+```
+
+### 3. Script Tag Usage (`script-tag-usage.html`)
 Shows how to use DexBee directly in the browser via script tag (UMD build):
 - No build tools required
 - Global `DexBee` object available
@@ -22,7 +46,7 @@ Shows how to use DexBee directly in the browser via script tag (UMD build):
 
 Open in browser to test the UMD build.
 
-### 3. Todo List Demo (`todo-list-demo.html`)
+### 4. Todo List Demo (`todo-list-demo.html`)
 Comprehensive todo list application demonstrating real-world DexBee usage:
 - Complete CRUD operations (Create, Read, Update, Delete)
 - SQL-like query operations with filtering

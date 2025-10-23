@@ -5,7 +5,7 @@
  * instance is fully typed based on the schema definition, similar to supabase-js.
  *
  * Key points:
- * 1. Use `as const` when defining your schema for best type inference
+ * 1. Use `defineSchema()` for automatic type inference (no `as const` needed!)
  * 2. The db.table() method returns a fully typed Table instance
  * 3. TypeScript knows the exact shape of your records
  * 4. Insert, update, and query operations are all type-checked
@@ -14,7 +14,7 @@
 import { defineSchema, DexBee } from '../src/index.js'
 
 // ============================================================================
-// Define your schema with `as const` for type inference
+// Define your schema using defineSchema() for automatic type inference
 // ============================================================================
 
 const schema = defineSchema({
@@ -52,7 +52,7 @@ const schema = defineSchema({
       ],
     },
   },
-} as const)
+})
 
 // ============================================================================
 // TypeScript automatically infers the types!

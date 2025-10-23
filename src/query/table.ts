@@ -364,7 +364,7 @@ export class Table<T = any> {
    * console.log(`Inserted user with ID: ${newUser.id}`)
    * ```
    */
-  async insert(data: import('../types/infer.js').InsertType<T>): Promise<T>
+  async insert(data: Partial<T>): Promise<T>
   async insert(data: any): Promise<T> {
     const tx = await this.getTransaction([this.name], 'readwrite')
     const store = tx.getStore(this.name)
@@ -500,7 +500,7 @@ export class Table<T = any> {
    * console.log(`Inserted ${users.length} users`)
    * ```
    */
-  async insertMany(records: import('../types/infer.js').InsertType<T>[]): Promise<T[]> {
+  async insertMany(records: Partial<T>[]): Promise<T[]> {
     const tx = await this.getTransaction([this.name], 'readwrite')
     const store = tx.getStore(this.name)
     const insertedRecords: T[] = []
@@ -589,7 +589,7 @@ export class Table<T = any> {
    */
   async insertWithBlob(data: Partial<T>, blobs: Partial<Record<keyof T, Blob | File | ArrayBuffer>>): Promise<T> {
     const fullData = { ...data, ...blobs }
-    return this.insert(fullData as import('../types/infer.js').InsertType<T>)
+    return this.insert(fullData as Partial<T>)
   }
 
   /**
@@ -733,6 +733,6 @@ export class Table<T = any> {
    */
   async insertManyWithBlobs(records: Array<{ data: Partial<T>, blobs: Partial<Record<keyof T, Blob | File | ArrayBuffer>> }>): Promise<T[]> {
     const fullRecords = records.map(({ data, blobs }) => ({ ...data, ...blobs }))
-    return this.insertMany(fullRecords as import('../types/infer.js').InsertType<T>[])
+    return this.insertMany(fullRecords as Partial<T>[])
   }
 }
