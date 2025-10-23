@@ -37,7 +37,22 @@
       "*.log",
       ".env",
       "tsconfig.tsbuildinfo",
-      "pnpm-lock.yaml"
+      "pnpm-lock.yaml",
+      "coverage",
+      "scripts",
+      ".github",
+      "*.config.js",
+      "*.config.ts",
+      "vitest.*.config.ts",
+      "tsup.config.ts",
+      "eslint.config.js",
+      "CHANGELOG.md",
+      "CLAUDE.md",
+      "WARP.md",
+      "*.test.ts",
+      "*.test.js",
+      "*.spec.ts",
+      "*.spec.js"
     ]
   }
 }
