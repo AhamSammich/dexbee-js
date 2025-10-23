@@ -3,7 +3,7 @@
   "type": "module",
   "version": "0.3.0",
   "packageManager": "pnpm@10.16.0",
-  "description": "A TypeScript IndexedDB ORM with SQL-like query builder interface",
+  "description": "A TypeScript IndexedDB ORM with SQL-like query builder interface. Browser-first with limited Node.js support via fake-indexeddb.",
   "author": "Andre Hammons <dev@ahammons.me>",
   "license": "MIT",
   "homepage": "https://github.com/AhamSammich/dexbee-js#readme",
@@ -19,7 +19,12 @@
     "orm",
     "typescript",
     "database",
-    "query-builder"
+    "query-builder",
+    "node",
+    "testing",
+    "cache",
+    "memory",
+    "browser"
   ],
   "sideEffects": false,
   "exports": {

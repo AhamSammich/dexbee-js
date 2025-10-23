@@ -34,23 +34,143 @@ pnpm add dexbee-js
 yarn add dexbee-js
 ```
 
-## 🌍 Browser Compatibility
+## 🌍 Runtime Compatibility
 
-DexBee is built specifically for **browser environments** and requires IndexedDB support:
+DexBee is primarily built for **browser environments** but also supports limited Node.js usage:
 
-**✅ Supported:**
+**✅ Browser Support:**
 - Modern browsers (Chrome 24+, Firefox 16+, Safari 8+, Edge 12+)
 - Electron applications
 - WebView-based applications
 - Progressive Web Apps (PWAs)
 
+**✅ Node.js Support (Limited):**
+- **Testing environments** with fake-indexeddb
+- **Development/prototyping** with memory-only storage
+- **CI/CD pipelines** for database logic testing
+- **Memory-only cache layers** for structured data
+- **Schema validation** and migration testing
+
+**⚠️ Node.js Limitations:**
+- Requires `fake-indexeddb` polyfill (memory-only, no persistence)
+- Blob/File storage has limitations due to jsdom constraints
+- Not suitable for production data persistence
+- Binary data handling may be incomplete
+
+**✅ Server-side Support (Limited):**
+- **Node.js**: Full compatibility (officially supported)
+- **Deno**: Full compatibility (v2+) via `npm:` specifier
+- **Bun**: Full compatibility (v1.2.9+) with ESM support
+- **Testing environments** with fake-indexeddb
+- **Development/prototyping** with memory-only storage
+- **CI/CD pipelines** for database logic testing
+- **Memory-only cache layers** for structured data
+- **Schema validation** and migration testing
+
 **❌ Not supported:**
-- Node.js (no IndexedDB)
-- Deno server-side (no IndexedDB) 
-- Bun server-side (no IndexedDB)
 - Cloudflare Workers (different storage APIs)
 
 ## 🚀 Quick Start
+
+### Browser Usage (Recommended)
+
+```typescript
+import { DexBee, type DatabaseSchema, eq, gt } from 'dexbee-js'
+
+const schema: DatabaseSchema = {
+  version: 1,
+  tables: {
+    users: {
+      schema: {
+        id: { type: 'number', required: true },
+        name: { type: 'string', required: true },
+        age: { type: 'number' }
+      },
+      primaryKey: 'id',
+      autoIncrement: true
+    }
+  }
+}
+
+const db = await DexBee.connect('myapp', schema)
+const users = db.table('users')
+
+// Insert data
+await users.insert({ name: 'John', age: 30 })
+
+// Query with SQL-like syntax
+const adults = await users
+  .where(gt('age', 18))
+  .orderBy('name')
+  .all()
+```
+
+### Server-side Usage (Limited)
+
+DexBee works in server-side environments using `fake-indexeddb` as a polyfill:
+
+```bash
+# Node.js - install fake-indexeddb
+npm install fake-indexeddb
+
+# Deno - no installation needed, uses npm: specifier
+# Bun - may need "type": "module" in package.json for some versions
+```
+
+```typescript
+// Node.js
+import 'fake-indexeddb/auto'
+import { DexBee, defineSchema, eq } from 'dexbee-js'
+
+// Deno
+import 'npm:fake-indexeddb/auto'
+import { DexBee, defineSchema, eq } from 'npm:dexbee-js'
+
+const schema = defineSchema({
+  version: 1,
+  tables: {
+    users: {
+      schema: {
+        id: { type: 'number', required: true },
+        name: { type: 'string', required: true },
+        email: { type: 'string', required: true }
+      },
+      primaryKey: 'id',
+      autoIncrement: true
+    }
+  }
+})
+
+// Testing database logic
+const db = await DexBee.connect('test-db', schema)
+const users = db.table('users')
+
+// Test data operations
+await users.insert({ name: 'Alice', email: 'alice@example.com' })
+const alice = await users.where(eq('name', 'Alice')).first()
+console.log('Found user:', alice?.name)
+```
+
+**Run with:**
+```bash
+# Node.js
+npx tsx examples/node-testing-example.ts
+
+# Deno
+deno run --allow-all examples/deno-testing-example.ts
+```
+
+**Runtime Compatibility:**
+- **Node.js**: Full compatibility (officially supported)
+- **Deno**: Full compatibility (v2+) via npm import
+- **Bun**: Full compatibility (v1.2.9+) with ESM support
+
+**⚠️ Important Notes:**
+- Data is stored in memory only (not persisted to disk)
+- Blob/File storage has limitations
+- Best suited for testing, development, and temporary caching
+- Not recommended for production data persistence
+- Deno requires `--allow-all` flag for full functionality
 
 ### Basic Example
 
@@ -71,7 +191,7 @@ const db = await DexBee.connect('myapp', {
       autoIncrement: true
     }
   }
-})
+} as const)
 
 // Insert and query data
 const users = db.table('users')

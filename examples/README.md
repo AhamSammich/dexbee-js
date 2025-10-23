@@ -46,7 +46,38 @@ Shows how to use DexBee directly in the browser via script tag (UMD build):
 
 Open in browser to test the UMD build.
 
-### 4. Todo List Demo (`todo-list-demo.html`)
+### 4. Node.js Testing Example (`node-testing-example.ts`)
+Demonstrates practical Node.js use cases for DexBee with fake-indexeddb:
+- Database schema testing and migration planning
+- Query logic validation for CI/CD pipelines
+- Data validation and error handling testing
+- Performance testing of database operations
+- Prototyping database designs before browser implementation
+
+**Prerequisites:**
+```bash
+npm install fake-indexeddb
+```
+
+**Run with:**
+```bash
+npx tsx examples/node-testing-example.ts
+```
+
+**Use cases:**
+- Testing database schemas and migrations
+- Validating query logic in CI/CD pipelines
+- Performance testing database operations
+- Prototyping database designs before browser implementation
+- Unit testing database logic without browser dependencies
+
+**⚠️ Limitations:**
+- Memory-only (data lost on process exit)
+- Blob/File storage has limitations
+- Transaction testing has fake-indexeddb limitations
+- Not suitable for production data persistence
+
+### 5. Todo List Demo (`todo-list-demo.html`)
 Comprehensive todo list application demonstrating real-world DexBee usage:
 - Complete CRUD operations (Create, Read, Update, Delete)
 - SQL-like query operations with filtering

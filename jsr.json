@@ -1,7 +1,7 @@
 {
   "name": "@dexbee/dexbee-js",
   "version": "0.3.0",
-  "description": "A TypeScript IndexedDB ORM with SQL-like query builder interface",
+  "description": "A TypeScript IndexedDB ORM with SQL-like query builder interface. Cross-runtime compatible (Browser, Node.js, Deno, Bun).",
   "license": "MIT",
   "keywords": [
     "indexeddb",
@@ -12,7 +12,12 @@
     "browser",
     "offline-first",
     "sql-like",
-    "tree-shaking"
+    "tree-shaking",
+    "node",
+    "deno",
+    "bun",
+    "testing",
+    "cross-runtime"
   ],
   "exports": {
     ".": "./src/index.ts"
@@ -23,6 +28,11 @@
       "dom.iterable",
       "es2022"
     ]
+  },
+  "runtime": {
+    "browser": "stable",
+    "node": "stable",
+    "deno": "stable"
   },
   "publish": {
     "exclude": [
@@ -41,6 +51,7 @@
       "coverage",
       "scripts",
       ".github",
+      ".prettier*",
       "*.config.js",
       "*.config.ts",
       "vitest.*.config.ts",
