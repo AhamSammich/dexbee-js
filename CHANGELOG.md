@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased] - 2025-10-23
+
+### Added
+- **Server-side Testing Example**: New `node-testing-example.ts` demonstrating practical server-side use cases
+- **Comprehensive Test Coverage**: Significantly improved test coverage for core modules
+  - **MigrationHistoryManager Tests**: 91.12% coverage with 20 test cases covering migration recording, retrieval, validation, and error handling
+  - **SchemaDiffEngine Tests**: 87.61% coverage with 20 test cases covering schema diff generation, migration operation creation, safety validation, and complexity estimation
+  - **MigrationManager Tests**: 69.23% coverage with 11 test cases covering migration plan generation, dry runs, application, and status retrieval
+  - Overall `src/core` coverage improved from 54.2% to 70.37% (+16.17% improvement)
+
+### Documentation
+- **Cross-runtime Compatibility**: Confirmed and documented server-side support
+  - **Node.js Support**: Works with `fake-indexeddb` polyfill for memory-only storage
+  - **Deno Support**: Compatible via `npm:` specifier (Deno v2+)
+  - **Bun Support**: Compatible with ESM support (Bun v1.2.9+)
+  - Added comprehensive documentation for server-side usage patterns
+  - Added runtime compatibility matrix with clear version requirements
+  - Updated JSR package configuration to reflect multi-runtime support
+
 ## [0.3.0] - 2025-10-23
 
 ### Added
