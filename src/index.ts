@@ -458,6 +458,59 @@ export type {
 } from './types/schema.js'
 
 /**
+ * Type inference utilities for deriving TypeScript types from schema definitions.
+ *
+ * These utilities enable full type safety by inferring record types from your schema.
+ * Use `as const` when defining schemas to get the most accurate type inference.
+ *
+ * @example
+ * ```ts
+ * import type { InferTableType, InferDatabaseTables } from 'dexbee-js'
+ *
+ * const schema = {
+ *   version: 1,
+ *   tables: {
+ *     users: {
+ *       schema: {
+ *         id: { type: 'number', required: true },
+ *         name: { type: 'string', required: true },
+ *         email: { type: 'string' }, // optional
+ *       },
+ *       primaryKey: 'id',
+ *       autoIncrement: true,
+ *     },
+ *   },
+ * } as const
+ *
+ * // Infer a single table type
+ * type User = InferTableType<typeof schema, 'users'>
+ * // { id: number; name: string; email?: string }
+ *
+ * // Infer all table types
+ * type Tables = InferDatabaseTables<typeof schema>
+ * // { users: User }
+ * ```
+ */
+export type {
+  /** Helper type to expand/flatten complex types for better IDE tooltips */
+  Expand,
+  /** Deeply expands nested types for even better tooltip clarity */
+  ExpandRecursively,
+  /** Extract table names from schema as a string union */
+  ExtractTableNames,
+  /** Infer TypeScript types for all tables in a schema */
+  InferDatabaseTables,
+  /** Infer TypeScript type for a single field definition */
+  InferFieldType,
+  /** Infer TypeScript type for a complete table schema */
+  InferSchemaType,
+  /** Infer TypeScript type for a specific table in a schema */
+  InferTableType,
+  /** Type for insert operations - makes auto-increment primary keys optional */
+  InsertType,
+} from './types/infer.js'
+
+/**
  * Query system type definitions.
  *
  * Types for building and executing database queries with type safety.
@@ -574,6 +627,56 @@ export {
   DexBeeErrorCode,
 } from './types/errors.js'
 
+// =============================================================================
+// HELPER FUNCTIONS - Utilities for easier schema definition
+// =============================================================================
+
+/**
+ * Schema definition helper that enables type inference without `as const`.
+ *
+ * This is the recommended way to define schemas. It provides better type inference,
+ * cleaner error messages, and eliminates the need for `as const` annotations.
+ *
+ * @example
+ * ```ts
+ * import { defineSchema, DexBee } from 'dexbee-js'
+ *
+ * const schema = defineSchema({
+ *   version: 1,
+ *   tables: {
+ *     users: {
+ *       schema: {
+ *         id: { type: 'number', required: true },
+ *         name: { type: 'string', required: true },
+ *       },
+ *       primaryKey: 'id',
+ *       autoIncrement: true,
+ *     },
+ *   },
+ * })
+ *
+ * // No type parameter needed - fully inferred!
+ * const db = await DexBee.connect('myapp', schema)
+ * ```
+ */
+export { defineSchema } from './helpers/define-schema.js'
+
+/**
+ * Type helper to extract schema type from defineSchema result.
+ *
+ * ```ts
+ * import type { InferSchema } from 'dexbee-js'
+ *
+ * const schema = defineSchema({ ... })
+ * type MySchema = InferSchema<typeof schema>
+ * ```
+ */
+export type { InferSchema } from './helpers/define-schema.js'
+
+// =============================================================================
+// MAIN API - DexBee factory class
+// =============================================================================
+
 /**
  * Main DexBee factory class for creating database instances.
  *
@@ -612,18 +715,35 @@ export class DexBee {
    *
    * @example
    * ```ts
+   * const schema = {
+   *   version: 1,
+   *   tables: {
+   *     users: {
+   *       schema: {
+   *         id: { type: 'number', required: true },
+   *         name: { type: 'string', required: true },
+   *       },
+   *       primaryKey: 'id',
+   *       autoIncrement: true,
+   *     },
+   *   },
+   * } as const
+   *
    * const db = DexBee.create('myapp', schema)
    *
    * // Later, when ready to connect
    * await db.connect()
-   * const users = db.table('users')
+   * const users = db.table('users') // Fully typed!
    * ```
    *
    * @see {@link connect} for immediate connection
    * @see {@link Database.connect} to connect the created instance
    */
-  static create(name: string, schema: DatabaseSchema): Database {
-    return new Database(name, schema)
+  static create<Schema extends DatabaseSchema>(
+    name: string,
+    schema: Schema,
+  ): Database<Schema> {
+    return new Database<Schema>(name, schema)
   }
 
   /**
@@ -639,11 +759,27 @@ export class DexBee {
    *
    * @example
    * ```ts
+   * const schema = {
+   *   version: 1,
+   *   tables: {
+   *     users: {
+   *       schema: {
+   *         id: { type: 'number', required: true },
+   *         name: { type: 'string', required: true },
+   *         email: { type: 'string' },
+   *       },
+   *       primaryKey: 'id',
+   *       autoIncrement: true,
+   *     },
+   *   },
+   * } as const
+   *
    * const db = await DexBee.connect('myapp', schema)
    * const users = db.table('users')
    *
-   * // Database is immediately ready for operations
-   * await users.insert({ name: 'John', age: 30 })
+   * // Fully typed! TypeScript knows the shape of User records
+   * await users.insert({ name: 'John', email: 'john@example.com' })
+   * const allUsers = await users.all() // User[]
    * ```
    *
    * @throws {@link DexBeeError} When database connection fails, schema validation fails, or migrations fail.
@@ -651,11 +787,11 @@ export class DexBee {
    *
    * @see {@link create} for manual connection control
    */
-  static async connect(
+  static async connect<Schema extends DatabaseSchema>(
     name: string,
-    schema: DatabaseSchema,
-  ): Promise<Database> {
-    const db = new Database(name, schema)
+    schema: Schema,
+  ): Promise<Database<Schema>> {
+    const db = new Database<Schema>(name, schema)
     await db.connect()
     return db
   }

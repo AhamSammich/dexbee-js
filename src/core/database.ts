@@ -1,3 +1,4 @@
+import type { ExtractTableNames, InferDatabaseTables } from '../types/infer.js'
 import type {
   DryRunResult,
   MigrationOptions,
@@ -15,7 +16,7 @@ import { MigrationManager } from './migration-manager.js'
 import { SchemaManager } from './schema-manager.js'
 import { TransactionManager } from './transaction-manager.js'
 
-export class Database implements IDatabase {
+export class Database<TSchema extends DatabaseSchema = DatabaseSchema> implements IDatabase {
   private connectionManager: DatabaseManager
   private schemaManager: SchemaManager
   private transactionManager: TransactionManager | null = null
@@ -23,7 +24,7 @@ export class Database implements IDatabase {
   private tableCache: Map<string, Table> = new Map()
   private dbName: string
 
-  constructor(name: string, schema: DatabaseSchema) {
+  constructor(name: string, schema: TSchema) {
     this.dbName = name
 
     // Validate schema during construction
@@ -132,6 +133,10 @@ export class Database implements IDatabase {
   }
 
   // Query builder interface - provides access to Table instances
+  table<TableName extends ExtractTableNames<TSchema>>(
+    tableName: TableName,
+  ): Table<InferDatabaseTables<TSchema>[TableName]>
+  table<T = any>(tableName: string): Table<T>
   table<T = any>(tableName: string): Table<T> {
     if (!this.tableCache.has(tableName)) {
       const table = new Table<T>(

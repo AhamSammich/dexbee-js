@@ -351,7 +351,7 @@ export class Table<T = any> {
    * Inserts a new record into the table.
    * Applies default values and validates data according to schema.
    *
-   * @param data - The data to insert (can be partial, required fields enforced by schema)
+   * @param data - The data to insert (required fields must be provided, id is optional for auto-increment)
    * @returns Promise resolving to the inserted record with auto-generated fields
    *
    * @example
@@ -364,7 +364,8 @@ export class Table<T = any> {
    * console.log(`Inserted user with ID: ${newUser.id}`)
    * ```
    */
-  async insert(data: Partial<T>): Promise<T> {
+  async insert(data: import('../types/infer.js').InsertType<T>): Promise<T>
+  async insert(data: any): Promise<T> {
     const tx = await this.getTransaction([this.name], 'readwrite')
     const store = tx.getStore(this.name)
 
@@ -499,7 +500,7 @@ export class Table<T = any> {
    * console.log(`Inserted ${users.length} users`)
    * ```
    */
-  async insertMany(records: Partial<T>[]): Promise<T[]> {
+  async insertMany(records: import('../types/infer.js').InsertType<T>[]): Promise<T[]> {
     const tx = await this.getTransaction([this.name], 'readwrite')
     const store = tx.getStore(this.name)
     const insertedRecords: T[] = []
@@ -588,7 +589,7 @@ export class Table<T = any> {
    */
   async insertWithBlob(data: Partial<T>, blobs: Partial<Record<keyof T, Blob | File | ArrayBuffer>>): Promise<T> {
     const fullData = { ...data, ...blobs }
-    return this.insert(fullData as Partial<T>)
+    return this.insert(fullData as import('../types/infer.js').InsertType<T>)
   }
 
   /**
@@ -732,6 +733,6 @@ export class Table<T = any> {
    */
   async insertManyWithBlobs(records: Array<{ data: Partial<T>, blobs: Partial<Record<keyof T, Blob | File | ArrayBuffer>> }>): Promise<T[]> {
     const fullRecords = records.map(({ data, blobs }) => ({ ...data, ...blobs }))
-    return this.insertMany(fullRecords as Partial<T>[])
+    return this.insertMany(fullRecords as import('../types/infer.js').InsertType<T>[])
   }
 }

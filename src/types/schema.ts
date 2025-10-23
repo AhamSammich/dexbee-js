@@ -58,8 +58,8 @@ export interface IndexDefinition {
   multiEntry?: boolean
 }
 
-export interface TableConfig {
-  schema: TableSchema
+export interface TableConfig<Schema extends TableSchema = TableSchema> {
+  schema: Schema
   primaryKey?: string
   autoIncrement?: boolean
   indexes?: IndexDefinition[]
@@ -70,9 +70,7 @@ export interface TableConfig {
 
 export interface DatabaseSchema {
   version: number
-  tables: {
-    [tableName: string]: TableConfig
-  }
+  tables: Record<string, TableConfig>
 }
 
 export interface Migration {
