@@ -99,13 +99,23 @@ interface FieldTypeMap {
 
 /**
  * Infers the TypeScript type for a single field definition.
- * Handles required/optional fields and maps DexBee field types to TS types.
+ * Handles required/optional fields, nullable fields, and maps DexBee field types to TS types.
+ *
+ * Type inference rules:
+ * - required: true, nullable: false → T
+ * - required: true, nullable: true → T | null
+ * - required: false, nullable: false → T | undefined
+ * - required: false, nullable: true (default) → T | null | undefined
  */
 export type InferFieldType<F extends ExtendedFieldDefinition>
   = F extends { type: infer T extends FieldType }
     ? F extends { required: true }
-      ? FieldTypeMap[T]
-      : FieldTypeMap[T] | undefined
+      ? F extends { nullable: false }
+        ? FieldTypeMap[T]                      // required, non-nullable
+        : FieldTypeMap[T] | null                // required, nullable (default)
+      : F extends { nullable: false }
+        ? FieldTypeMap[T] | undefined           // optional, non-nullable
+        : FieldTypeMap[T] | null | undefined    // optional, nullable (default)
     : never
 
 /**

@@ -72,6 +72,18 @@ export class AlterFieldOperation implements MigrationOperation {
           `Changing default value for field '${this.fieldName}' from '${this.oldDefinition.default}' to '${this.newDefinition.default}'.`,
         )
       }
+
+      // Handle nullable constraint changes
+      if (changes.nullableChanged) {
+        if (this.newDefinition.nullable === false && this.oldDefinition.nullable !== false) {
+          console.warn(
+            `Making field '${this.fieldName}' non-nullable. Existing null values may cause validation errors.`,
+          )
+        }
+        else if (this.newDefinition.nullable === true && this.oldDefinition.nullable === false) {
+          console.info(`Making field '${this.fieldName}' nullable.`)
+        }
+      }
     }
     catch (error) {
       throw new DexBeeError(
@@ -146,6 +158,7 @@ export class AlterFieldOperation implements MigrationOperation {
       if (
         changes.typeChanged
         || (changes.requiredChanged && !this.newDefinition.required)
+        || (changes.nullableChanged && this.newDefinition.nullable === true)
       ) {
         throw new DexBeeError(
           DexBeeErrorCode.MIGRATION_VALIDATION_FAILED,
@@ -160,6 +173,7 @@ export class AlterFieldOperation implements MigrationOperation {
     requiredChanged: boolean
     uniqueChanged: boolean
     defaultChanged: boolean
+    nullableChanged: boolean
   } {
     return {
       typeChanged: this.oldDefinition.type !== this.newDefinition.type,
@@ -167,6 +181,7 @@ export class AlterFieldOperation implements MigrationOperation {
         this.oldDefinition.required !== this.newDefinition.required,
       uniqueChanged: this.oldDefinition.unique !== this.newDefinition.unique,
       defaultChanged: this.oldDefinition.default !== this.newDefinition.default,
+      nullableChanged: this.oldDefinition.nullable !== this.newDefinition.nullable,
     }
   }
 

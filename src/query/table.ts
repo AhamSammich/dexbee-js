@@ -435,6 +435,17 @@ export class Table<T = any> {
         // Merge the existing record with the update data
         const updatedRecord = { ...existingRecord, ...data }
 
+        // Validate the merged record
+        if (this.validateData) {
+          try {
+            this.validateData(this.name, updatedRecord)
+          }
+          catch (error) {
+            reject(error)
+            return
+          }
+        }
+
         // Update the record
         const putRequest = store.put(updatedRecord)
         putRequest.onsuccess = () => resolve(updatedRecord)

@@ -13,6 +13,7 @@ export interface RelationshipDefinition {
 export interface FieldDefinition {
   type: FieldType
   required?: boolean
+  nullable?: boolean // Allow null values (defaults to true for backward compatibility)
   unique?: boolean
   index?: boolean
   default?: () => any

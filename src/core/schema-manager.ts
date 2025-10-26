@@ -550,7 +550,7 @@ export class SchemaManager implements ISchemaManager {
       // Check required fields (except auto-increment primary keys)
       if (
         fieldDef.required
-        && (value === undefined || value === null)
+        && value === undefined
         && !isAutoIncrementPrimaryKey
       ) {
         throw new DexBeeError(
@@ -559,7 +559,16 @@ export class SchemaManager implements ISchemaManager {
         )
       }
 
-      // Skip type checking for undefined/null values of optional fields
+      // Check nullable constraint (defaults to true for backward compatibility)
+      const nullable = fieldDef.nullable !== false // true if undefined or true
+      if (value === null && !nullable) {
+        throw new DexBeeError(
+          DexBeeErrorCode.SCHEMA_VALIDATION_FAILED,
+          `Field '${fieldName}' in table '${tableName}' cannot be null (nullable: false)`,
+        )
+      }
+
+      // Skip type checking for undefined/null values
       if (value === undefined || value === null) {
         return
       }
