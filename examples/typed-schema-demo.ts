@@ -11,6 +11,7 @@
  * 4. Insert, update, and query operations are all type-checked
  */
 
+import 'fake-indexeddb/auto'
 import { defineSchema, DexBee } from '../src/index.js'
 
 // ============================================================================

@@ -1,6 +1,7 @@
 // Query Builder Demo
 // This example demonstrates the SQL-like query interface
 
+import 'fake-indexeddb/auto'
 import { and, defineSchema, DexBee, eq, gt, not, or } from '../src/index.js'
 
 // Define database schema

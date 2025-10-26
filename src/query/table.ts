@@ -1,6 +1,8 @@
 import type { ITransactionWrapper } from '../core/interfaces.js'
 import type { BlobMetadata } from '../types/schema.js'
+import type { TableOptions } from '../types/table.js'
 import type { QueryBuilder } from './query-builder.js'
+import { OperationQueue } from '../core/operation-queue.js'
 import { DexBeeError, DexBeeErrorCode } from '../types/errors.js'
 import { createQueryBuilder } from './query-builder.js'
 
@@ -12,6 +14,7 @@ import { createQueryBuilder } from './query-builder.js'
  */
 export class Table<T = any> {
   private queryBuilder: QueryBuilder<T>
+  private operationQueue: OperationQueue
 
   /**
    * Creates a new Table instance.
@@ -21,6 +24,7 @@ export class Table<T = any> {
    * @param schema - The database schema definition
    * @param applyDefaults - Optional function to apply default values to records
    * @param validateData - Optional function to validate record data
+   * @param options - Optional table configuration options
    */
   constructor(
     public readonly name: string,
@@ -28,8 +32,10 @@ export class Table<T = any> {
     private schema: import('../types/schema.js').DatabaseSchema,
     private applyDefaults?: (tableName: string, data: any) => any,
     private validateData?: (tableName: string, data: any) => void,
+    private options?: TableOptions,
   ) {
     this.queryBuilder = createQueryBuilder<T>(name, getTransaction, schema)
+    this.operationQueue = new OperationQueue(options?.queueOperations ?? true)
   }
 
   // Query builder methods - these create new QueryBuilder instances
@@ -400,6 +406,7 @@ export class Table<T = any> {
 
   /**
    * Updates an existing record by merging new data with existing data.
+   * Operations on the same record are automatically queued to prevent race conditions.
    *
    * @param id - The primary key of the record to update
    * @param data - Partial data to merge with existing record
@@ -416,6 +423,16 @@ export class Table<T = any> {
    * ```
    */
   async update(id: any, data: Partial<T>): Promise<T> {
+    return this.operationQueue.add(id, async () => {
+      return this._updateImpl(id, data)
+    })
+  }
+
+  /**
+   * Internal update implementation (original logic).
+   * @private
+   */
+  private async _updateImpl(id: any, data: Partial<T>): Promise<T> {
     const tx = await this.getTransaction([this.name], 'readwrite')
     const store = tx.getStore(this.name)
 
@@ -465,6 +482,7 @@ export class Table<T = any> {
 
   /**
    * Deletes a record from the table by its primary key.
+   * Operations on the same record are automatically queued to prevent race conditions.
    *
    * @param id - The primary key of the record to delete
    * @returns Promise resolving to true if deletion was successful
@@ -478,6 +496,16 @@ export class Table<T = any> {
    * ```
    */
   async delete(id: any): Promise<boolean> {
+    return this.operationQueue.add(id, async () => {
+      return this._deleteImpl(id)
+    })
+  }
+
+  /**
+   * Internal delete implementation (original logic).
+   * @private
+   */
+  private async _deleteImpl(id: any): Promise<boolean> {
     const tx = await this.getTransaction([this.name], 'readwrite')
     const store = tx.getStore(this.name)
 
@@ -745,5 +773,25 @@ export class Table<T = any> {
   async insertManyWithBlobs(records: Array<{ data: Partial<T>, blobs: Partial<Record<keyof T, Blob | File | ArrayBuffer>> }>): Promise<T[]> {
     const fullRecords = records.map(({ data, blobs }) => ({ ...data, ...blobs }))
     return this.insertMany(fullRecords as Partial<T>[])
+  }
+
+  /**
+   * Gets queue statistics for debugging and monitoring.
+   * Useful for understanding the current state of operation queuing.
+   *
+   * @returns Object containing queue statistics
+   *
+   * @example
+   * ```typescript
+   * const stats = table.getQueueStats()
+   * console.log(`Pending operations: ${stats.pendingOperations}`)
+   * console.log(`Queue enabled: ${stats.enabled}`)
+   * ```
+   */
+  getQueueStats(): { pendingOperations: number, enabled: boolean } {
+    return {
+      pendingOperations: this.operationQueue.getPendingCount(),
+      enabled: this.operationQueue.isEnabled(),
+    }
   }
 }

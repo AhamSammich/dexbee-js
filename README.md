@@ -14,6 +14,7 @@ A modern TypeScript IndexedDB ORM with SQL-like query builder interface. Build p
 - 🚀 **Tree-shakeable** - Import only what you need for optimal bundle size
 - 📦 **Schema migrations** - Automatic database schema evolution
 - 🔄 **Transaction support** - ACID compliance with transaction wrapper
+- ⚡ **Operation queuing** - Automatic race condition prevention for concurrent operations
 - 🌐 **Modern ESM** - Full ESM support with TypeScript declarations
 - 🎨 **Query builder** - Intuitive, chainable query interface
 - 🌍 **Browser-focused** - Built specifically for IndexedDB in browser environments
@@ -319,6 +320,36 @@ await db.transaction(['users', 'posts'], 'readwrite', async (tx) => {
   // Rolls back automatically on error
 })
 ```
+
+### Operation Queuing
+
+DexBee automatically prevents race conditions by queuing operations on the same record while allowing parallel execution across different records.
+
+```typescript
+// Automatic queuing is enabled by default
+const users = db.table('users')
+
+// These operations on the same user execute sequentially (no race conditions)
+await Promise.all([
+  users.update(1, { count: users.count + 1 }),  // Executes first
+  users.update(1, { status: 'active' })          // Executes second
+])
+
+// These operations on different users execute in parallel
+await Promise.all([
+  users.update(1, { count: 10 }),  // Parallel
+  users.update(2, { count: 20 })   // Parallel
+])
+
+// Disable queuing if needed (not recommended for concurrent operations)
+const usersUnqueued = db.table('users', { queueOperations: false })
+```
+
+**Key Benefits:**
+- 🚀 **Parallel performance** - Different records operate concurrently
+- 🔒 **Data integrity** - Same record operations are sequential
+- ⚙️ **Configurable** - Enable/disable via `TableOptions.queueOperations`
+- 🎯 **Automatic** - Works transparently without manual coordination
 
 ### Schema Migrations
 

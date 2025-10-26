@@ -7,6 +7,7 @@ import type {
   RollbackResult,
 } from '../types/migration.js'
 import type { DatabaseSchema } from '../types/schema.js'
+import type { TableOptions } from '../types/table.js'
 import type { TransactionOptions } from '../types/transaction.js'
 import type { IDatabase, ITransactionWrapper } from './interfaces.js'
 import { Table } from '../query/table.js'
@@ -135,20 +136,26 @@ export class Database<TSchema extends DatabaseSchema = DatabaseSchema> implement
   // Query builder interface - provides access to Table instances
   table<TableName extends ExtractTableNames<TSchema>>(
     tableName: TableName,
+    options?: TableOptions,
   ): Table<InferDatabaseTables<TSchema>[TableName]>
-  table<T = any>(tableName: string): Table<T>
-  table<T = any>(tableName: string): Table<T> {
-    if (!this.tableCache.has(tableName)) {
+  table<T = any>(tableName: string, options?: TableOptions): Table<T>
+  table<T = any>(tableName: string, options?: TableOptions): Table<T> {
+    // Create a cache key that includes options for proper caching
+    // For Phase 1, we use a simple approach: cache key includes serialized options
+    const cacheKey = options ? `${tableName}:${JSON.stringify(options)}` : tableName
+
+    if (!this.tableCache.has(cacheKey)) {
       const table = new Table<T>(
         tableName,
         this.getTransactionFunction(),
         this.schemaManager.schema, // Access schema from SchemaManager
         this.schemaManager.applyDefaults.bind(this.schemaManager),
         this.schemaManager.validateData.bind(this.schemaManager),
+        options,
       )
-      this.tableCache.set(tableName, table)
+      this.tableCache.set(cacheKey, table)
     }
-    return this.tableCache.get(tableName)! as Table<T>
+    return this.tableCache.get(cacheKey)! as Table<T>
   }
 
   private getTransactionFunction() {

@@ -5,7 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.1] - 2025-10-23 - 2025-10-23
+## [Unreleased]
+
+### Added
+- **Async Operation Queue**: Automatic race condition prevention for concurrent database operations
+  - Per-record operation queuing to ensure sequential execution for the same record
+  - Parallel execution for different records across multiple concurrent operations
+  - Configurable via `TableOptions.queueOperations` (enabled by default)
+  - New `OperationQueue` class in `src/core/operation-queue.ts`
+  - Comprehensive integration tests for operation queue behavior
+  - Enhanced examples to work with fake-indexeddb for Node.js testing
+
+## [0.3.1] - 2025-10-23
 
 ### Added
 - **Server-side Testing Example**: New `node-testing-example.ts` demonstrating practical server-side use cases

@@ -580,6 +580,26 @@ export type {
 } from './types/migration.js'
 
 /**
+ * Table configuration type definitions.
+ *
+ * Types for configuring table behavior and features.
+ *
+ * ```ts
+ * import type { TableOptions } from 'dexbee-js'
+ *
+ * const options: TableOptions = {
+ *   queueOperations: true
+ * }
+ *
+ * const table = db.table('users', options)
+ * ```
+ */
+export type {
+  /** Table configuration options for operation queuing and other features */
+  TableOptions,
+} from './types/table.js'
+
+/**
  * Transaction system type definitions.
  *
  * Types for managing database transactions with ACID compliance.
