@@ -313,101 +313,40 @@ export type {
 } from './query/interfaces.js'
 
 // =============================================================================
-// MIGRATION SYSTEM - Enterprise schema evolution (can be tree-shaken out)
-// Tree-shaking: Only bundled when migration features are imported
+// MIGRATION SYSTEM - Moved to 'dexbee-js/migrations' for better tree-shaking
 // =============================================================================
 
 /**
- * Migration management classes.
+ * @deprecated Migration features have been moved to 'dexbee-js/migrations' for optimal bundle size.
  *
- * Provides enterprise-grade schema evolution with safety guarantees,
- * rollback capabilities, and data transformation support.
- */
-
-/**
- * Orchestrates database schema migrations.
+ * The migration system is now in a separate import path to reduce core bundle size.
+ * This allows applications that don't need migration features to avoid bundling them.
  *
- * Handles migration planning, execution, and rollback operations.
- * Ensures data integrity throughout the migration process.
+ * **Migration Guide:**
  *
- * ```ts
- * import { MigrationManager } from 'dexbee-js'
- *
- * const manager = new MigrationManager(db, schema)
- * const plan = await manager.generateMigrationPlan(oldSchema, newSchema)
- * const result = await manager.executeMigration(plan)
+ * Before (v0.3.x):
+ * ```typescript
+ * import { DexBee } from 'dexbee-js'
+ * const db = await DexBee.connect('mydb', schema)
+ * await db.migrate(newSchema)
  * ```
- */
-export { MigrationManager } from './core/migration-manager.js'
-
-/**
- * Tracks and manages migration history.
  *
- * Maintains records of applied migrations, enabling rollback
- * operations and migration state verification.
+ * After (v0.4.0+):
+ * ```typescript
+ * import { DexBee } from 'dexbee-js'
+ * import { withMigrations } from 'dexbee-js/migrations'
  *
- * ```ts
- * import { MigrationHistoryManager } from 'dexbee-js'
- *
- * const history = new MigrationHistoryManager(db)
- * const applied = await history.getAppliedMigrations()
- * await history.recordMigration(migration)
+ * const db = await DexBee.connect('mydb', schema)
+ * const migratable = withMigrations(db)
+ * await migratable.migrate(newSchema)
  * ```
+ *
+ * **Bundle Size Benefits:**
+ * - Core only: ~34KB (without migrations)
+ * - With migrations: ~56KB (when imported)
+ *
+ * @see https://dexbee.dev/docs/migrations for full documentation
  */
-export { MigrationHistoryManager } from './core/migration-history.js'
-
-/**
- * Analyzes schema differences and generates migration operations.
- *
- * Compares database schemas and produces atomic migration operations
- * to transform one schema into another safely.
- *
- * ```ts
- * import { SchemaDiffEngine } from 'dexbee-js'
- *
- * const diffEngine = new SchemaDiffEngine()
- * const operations = diffEngine.generateDiff(oldSchema, newSchema)
- * ```
- */
-export { SchemaDiffEngine } from './core/schema-diff-engine.js'
-
-/**
- * Handles complex data transformations during migrations.
- *
- * Provides utilities for safely transforming existing data
- * when schema changes require data format updates.
- *
- * ```ts
- * import { DataTransformer } from 'dexbee-js'
- *
- * const transformer = new DataTransformer()
- * await transformer.transformData('users', oldData => ({
- *   ...oldData,
- *   fullName: `${oldData.firstName} ${oldData.lastName}`
- * }))
- * ```
- */
-export { DataTransformer } from './migration/data-transformer.js'
-
-/**
- * Individual migration operations (tree-shakeable).
- *
- * Atomic operations that can be combined to form complete migrations.
- * Each operation is reversible and validates data integrity.
- */
-
-/** Creates new tables in the database schema */
-export { AddTableOperation } from './migration/operations/add-table-operation.js'
-/** Removes tables from the database schema */
-export { DropTableOperation } from './migration/operations/drop-table-operation.js'
-/** Adds new fields to existing tables */
-export { AddFieldOperation } from './migration/operations/add-field-operation.js'
-/** Removes fields from existing tables */
-export { DropFieldOperation } from './migration/operations/drop-field-operation.js'
-/** Modifies existing field definitions */
-export { AlterFieldOperation } from './migration/operations/alter-field-operation.js'
-/** Transforms existing data during schema changes */
-export { TransformDataOperation } from './migration/operations/transform-data-operation.js'
 
 // =============================================================================
 // TYPE DEFINITIONS - Import only the types you need
@@ -541,43 +480,15 @@ export type {
 } from './types/query.js'
 
 /**
- * Migration system type definitions (tree-shakeable).
+ * Migration system type definitions.
  *
- * Types for enterprise-grade schema evolution and data migration.
- * Only imported when migration features are used.
+ * @deprecated Migration types have been moved to 'dexbee-js/migrations'.
+ * Import migration types from 'dexbee-js/migrations' instead:
  *
  * ```ts
- * import type { MigrationPlan, MigrationOperation } from 'dexbee-js'
- *
- * const plan: MigrationPlan = {
- *   fromVersion: 1,
- *   toVersion: 2,
- *   operations: [...]
- * }
+ * import type { MigrationPlan, MigrationOperation } from 'dexbee-js/migrations'
  * ```
  */
-export type {
-  /** Data transformation function signature */
-  DataTransformation,
-  /** Result of migration dry run validation */
-  DryRunResult,
-  /** Individual migration operation definition */
-  MigrationOperation,
-  /** Migration execution options */
-  MigrationOptions,
-  /** Complete migration plan with operations */
-  MigrationPlan,
-  /** Migration history record */
-  MigrationRecord,
-  /** Migration execution result */
-  MigrationResult,
-  /** Migration status enumeration */
-  MigrationStatus,
-  /** Migration rollback result */
-  RollbackResult,
-  /** Migration validation result */
-  ValidationResult,
-} from './types/migration.js'
 
 /**
  * Table configuration type definitions.

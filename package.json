@@ -6,7 +6,7 @@
   "description": "A TypeScript IndexedDB ORM with SQL-like query builder interface. Browser-first with limited Node.js support via fake-indexeddb.",
   "author": "Andre Hammons <dev@ahammons.me>",
   "license": "MIT",
-  "homepage": "https://github.com/AhamSammich/dexbee-js#readme",
+  "homepage": "https://www.dexbee.dev",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/AhamSammich/dexbee-js.git"
@@ -33,6 +33,17 @@
         "types": "./dist/index.d.ts",
         "default": "./dist/index.js"
       }
+    },
+    "./migrations": {
+      "import": {
+        "types": "./dist/migrations.d.ts",
+        "default": "./dist/migrations.js"
+      }
+    }
+  },
+  "typesVersions": {
+    "*": {
+      "migrations": ["./dist/migrations.d.ts"]
     }
   },
   "main": "dist/index.js",

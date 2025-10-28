@@ -56,3 +56,10 @@ Thumbs.db
 test-results/
 playwright-report/
 tests/integration/__screenshots__/
+
+# Misc
+WARP.md
+CLAUDE.md
+.cursorrules
+.cursor/
+.claude/

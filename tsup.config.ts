@@ -3,7 +3,10 @@ import { defineConfig } from 'tsup';
 export default defineConfig([
   // ESM build for modern usage
   {
-    entry: ['src/index.ts'],
+    entry: {
+      index: 'src/index.ts',
+      migrations: 'src/migrations.ts',
+    },
     format: ['esm'],
     target: 'es2020',
     platform: 'browser',

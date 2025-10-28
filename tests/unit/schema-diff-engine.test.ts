@@ -255,10 +255,10 @@ describe('schemaDiffEngine', () => {
 
       const diff = diffEngine.generateDiff(oldSchema, newSchema)
 
-      // The current implementation has a bug where it doesn't properly compare index objects
-      // So it treats all indexes as new when they're objects
-      expect(diff.indexesAdded).toHaveLength(2) // Both indexes are treated as new
-      expect(diff.indexesDropped).toHaveLength(1) // The old index is treated as dropped
+      // Should only detect the new email_idx index, not name_idx which exists in both
+      expect(diff.indexesAdded).toHaveLength(1)
+      expect(diff.indexesAdded[0].indexName).toBe('email_idx')
+      expect(diff.indexesDropped).toHaveLength(0)
     })
 
     it('should return empty diff when schemas are identical', () => {

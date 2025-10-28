@@ -7,6 +7,7 @@ export default antfu({
     'no-console': 'off',
     'unicorn/switch-case-braces': 'error',
     'style/brace-style': 'off',
+    'test/prefer-lowercase-title': 'off',
   },
   ignores: ['dist', '*.md'],
 })

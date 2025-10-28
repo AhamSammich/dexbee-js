@@ -356,24 +356,25 @@ export class SchemaDiffEngine {
     const indexesAdded: IndexAddition[] = []
     const indexesDropped: IndexDrop[] = []
 
-    const oldIndexes = new Set(oldConfig.indexes || [])
-    const newIndexes = new Set(newConfig.indexes || [])
+    const oldIndexNames = new Set((oldConfig.indexes || []).map((idx: any) => idx.name || idx))
+    const newIndexes = newConfig.indexes || []
 
-    // For now, simple string comparison
-    // In a more sophisticated implementation, we'd parse index definitions
-    for (const indexName of newIndexes) {
-      if (!oldIndexes.has(indexName)) {
+    for (const index of newIndexes) {
+      const indexName = typeof index === 'string' ? index : index.name
+      if (!oldIndexNames.has(indexName)) {
         indexesAdded.push({
           tableName,
           indexName: indexName as string,
-          keyPath: indexName as string, // Simplified
-          options: {},
+          keyPath: (typeof index === 'object' ? index.keyPath : indexName) as string | string[],
+          options: typeof index === 'object' ? { unique: index.unique, multiEntry: index.multiEntry } : {},
         })
       }
     }
 
-    for (const indexName of oldIndexes) {
-      if (!newIndexes.has(indexName)) {
+    const oldIndexes = oldConfig.indexes || []
+    for (const index of oldIndexes) {
+      const indexName = typeof index === 'string' ? index : index.name
+      if (!newIndexes.some((idx: any) => (typeof idx === 'string' ? idx : idx.name) === indexName)) {
         indexesDropped.push({
           tableName,
           indexName: indexName as string,

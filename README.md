@@ -353,48 +353,52 @@ const usersUnqueued = db.table('users', { queueOperations: false })
 
 ### Schema Migrations
 
+Import the migration plugin separately to keep your bundle size small:
+
 ```typescript
-// Version 2 of your schema - add new fields
-const schemaV2: DatabaseSchema = {
+import { DexBee } from 'dexbee-js'
+import { withMigrations } from 'dexbee-js/migrations'
+
+// Connect with your current schema
+const db = await DexBee.connect('myapp', currentSchema)
+
+// Add migration capabilities
+const migratable = withMigrations(db)
+
+// Define new schema with added fields
+const newSchema: DatabaseSchema = {
   version: 2,
   tables: {
     users: {
-      fields: {
-        id: { type: 'string', primaryKey: true },
+      schema: {
+        id: { type: 'number', required: true },
         name: { type: 'string', required: true },
-        email: { type: 'string', unique: true },
-        age: { type: 'number' },
-        avatar: { type: 'string' }, // New field
+        email: { type: 'string', required: false },
+        avatar: { type: 'string', required: false }, // New field
         isActive: { type: 'boolean', default: true }, // New field
-        createdAt: { type: 'date', default: () => new Date() }
-      }
-      // ... rest of schema
+      },
+      primaryKey: 'id',
+      autoIncrement: true
     }
-  },
-  migrations: [
-    {
-      version: 2,
-      operations: [
-        {
-          type: 'addField',
-          table: 'users',
-          field: 'avatar',
-          definition: { type: 'string' }
-        },
-        {
-          type: 'addField', 
-          table: 'users',
-          field: 'isActive',
-          definition: { type: 'boolean', default: true }
-        }
-      ]
-    }
-  ]
+  }
 }
 
-// DexBee automatically handles the migration
-const db = await DexBee.connect('myapp', schemaV2)
+// Preview migration with dry run
+const dryRun = await migratable.dryRunMigration(newSchema)
+console.log('Operations:', dryRun.operations)
+console.log('Valid:', dryRun.isValid)
+
+// Apply migration with safety options
+if (dryRun.isValid) {
+  const result = await migratable.migrate(newSchema, {
+    createBackup: true,
+    rollbackOnError: true
+  })
+  console.log(`Migration completed: ${result.operationsExecuted} operations`)
+}
 ```
+
+See [docs/migrations.md](./docs/migrations.md) for detailed migration documentation.
 
 ### Query Builder API
 
@@ -471,19 +475,30 @@ const url = await fileTable.getBlobUrl(1, 'content')
 URL.revokeObjectURL(url) // Clean up memory
 ```
 
-### Tree Shaking
+### Tree Shaking & Bundle Size
 
-DexBee is built with tree-shaking in mind. Import only what you need:
+DexBee is optimized for tree-shaking with separate entry points for different features:
+
+| Import Pattern | Bundle Size (gzipped) | Use Case |
+|----------------|----------------------|----------|
+| Core only | ~34KB | Basic database operations |
+| With migrations | ~56KB | Apps with schema evolution |
+| Query-heavy | ~35KB | Read-heavy applications |
 
 ```typescript
-// Minimal import for basic operations
-import { DexBee, eq, gt } from 'dexbee-js'
+// Core only (~34KB) - Basic database operations
+import { DexBee, eq, and } from 'dexbee-js'
 
-// Or import specific modules
-import { Database } from 'dexbee-js/database'
-import { QueryBuilder } from 'dexbee-js/query-builder'
-import { eq, and } from 'dexbee-js/operators'
+// With migrations (~56KB) - When you need schema evolution
+import { DexBee } from 'dexbee-js'
+import { withMigrations } from 'dexbee-js/migrations'
+
+const db = await DexBee.connect('mydb', schema)
+const migratable = withMigrations(db)
+await migratable.migrate(newSchema)
 ```
+
+The migration system is in a separate entry point (`dexbee-js/migrations`) to keep the core bundle small. Only import migrations when you need them!
 
 ## 🔧 API Reference
 
@@ -501,12 +516,21 @@ import { eq, and } from 'dexbee-js/operators'
 - **Logical**: `and`, `or`, `not`
 - **Blob-specific**: `sizeGt`, `sizeLt`, `sizeBetween`, `mimeType`
 
-### Migration Operations
+### Migration Operations (from `dexbee-js/migrations`)
 
-- **Schema**: `AddTableOperation`, `DropTableOperation`
-- **Fields**: `AddFieldOperation`, `DropFieldOperation`, `AlterFieldOperation`  
-- **Indexes**: `AddIndexOperation`, `DropIndexOperation`
-- **Data**: `TransformDataOperation`
+Import migrations separately to optimize bundle size:
+
+```typescript
+import { withMigrations } from 'dexbee-js/migrations'
+```
+
+- **`withMigrations(db)`** - Add migration capabilities to a Database instance
+- **`migrate(schema, options)`** - Apply schema migration
+- **`dryRunMigration(schema)`** - Preview migration without applying
+- **`rollback(version)`** - Rollback to a previous version
+- **`getMigrationStatus()`** - Get current migration state
+
+See [docs/migrations.md](./docs/migrations.md) for complete migration documentation.
 
 ## 🧪 Testing
 

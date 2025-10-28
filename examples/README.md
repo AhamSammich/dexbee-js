@@ -95,6 +95,51 @@ Comprehensive todo list application demonstrating real-world DexBee usage:
 
 Open `todo-list-demo.html` in your browser for a fully functional demo app.
 
+### 6. Migration System Demo (`migrations-demo.ts`)
+Comprehensive demonstration of DexBee's enterprise-grade migration system:
+- Schema evolution across multiple versions (v1 → v2 → v3)
+- Plugin architecture with `withMigrations()` wrapper
+- Dry run validation before applying changes
+- Safety options: backup, rollback, validation
+- Data preservation across migrations
+- Migration history tracking
+- Multi-table schema changes
+
+**Features showcased:**
+- Separate import for migrations (optimal bundle size)
+- Preview migrations without applying changes
+- Safe migration workflow with rollback support
+- Adding new tables and fields
+- Migration status and history tracking
+- Best practices for production migrations
+
+**Run with:**
+```bash
+pnpm tsx examples/migrations-demo.ts
+```
+
+**Key concepts:**
+```typescript
+// Import migrations separately (keeps core bundle small)
+import { DexBee } from 'dexbee-js'
+import { withMigrations } from 'dexbee-js/migrations'
+
+// Add migration capabilities
+const db = await DexBee.connect('mydb', schema)
+const migratable = withMigrations(db)
+
+// Always preview first
+const dryRun = await migratable.dryRunMigration(newSchema)
+
+// Apply with safety options
+if (dryRun.isValid) {
+  await migratable.migrate(newSchema, {
+    createBackup: true,
+    rollbackOnError: true
+  })
+}
+```
+
 ## Installation Methods
 
 ### ESM (Recommended for bundlers)

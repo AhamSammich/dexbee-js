@@ -1,11 +1,4 @@
 import type { ExtractTableNames, InferDatabaseTables } from '../types/infer.js'
-import type {
-  DryRunResult,
-  MigrationOptions,
-  MigrationResult,
-  MigrationStatus,
-  RollbackResult,
-} from '../types/migration.js'
 import type { DatabaseSchema } from '../types/schema.js'
 import type { TableOptions } from '../types/table.js'
 import type { TransactionOptions } from '../types/transaction.js'
@@ -13,7 +6,6 @@ import type { IDatabase, ITransactionWrapper } from './interfaces.js'
 import { Table } from '../query/table.js'
 import { DexBeeError, DexBeeErrorCode } from '../types/errors.js'
 import { DatabaseManager } from './database-manager.js'
-import { MigrationManager } from './migration-manager.js'
 import { SchemaManager } from './schema-manager.js'
 import { TransactionManager } from './transaction-manager.js'
 
@@ -21,7 +13,6 @@ export class Database<TSchema extends DatabaseSchema = DatabaseSchema> implement
   private connectionManager: DatabaseManager
   private schemaManager: SchemaManager
   private transactionManager: TransactionManager | null = null
-  private migrationManager: MigrationManager | null = null
   private tableCache: Map<string, Table> = new Map()
   private dbName: string
 
@@ -38,7 +29,6 @@ export class Database<TSchema extends DatabaseSchema = DatabaseSchema> implement
   async connect(): Promise<void> {
     const db = await this.connectionManager.connect()
     this.transactionManager = new TransactionManager(db)
-    this.migrationManager = new MigrationManager(this, this.dbName)
   }
 
   close(): void {
@@ -177,73 +167,6 @@ export class Database<TSchema extends DatabaseSchema = DatabaseSchema> implement
     }
   }
 
-  // Migration methods
-  async migrate(newSchema: DatabaseSchema, options?: MigrationOptions): Promise<MigrationResult> {
-    if (!this.migrationManager) {
-      throw new DexBeeError(
-        DexBeeErrorCode.CONNECTION_FAILED,
-        'Database is not connected. Call connect() first.',
-      )
-    }
-
-    const currentSchema = this.schemaManager.schema
-    const migrationPlan = await this.migrationManager.generateMigration(
-      currentSchema,
-      newSchema,
-      options,
-    )
-
-    const result = await this.migrationManager.applyMigration(migrationPlan, options)
-
-    // Update schema manager with new schema if migration was successful
-    if (result.success) {
-      this.schemaManager = new SchemaManager(newSchema)
-      this.tableCache.clear() // Clear table cache to use new schema
-    }
-
-    return result
-  }
-
-  async rollback(targetVersion: number): Promise<RollbackResult> {
-    if (!this.migrationManager) {
-      throw new DexBeeError(
-        DexBeeErrorCode.CONNECTION_FAILED,
-        'Database is not connected. Call connect() first.',
-      )
-    }
-
-    return this.migrationManager.rollback(targetVersion)
-  }
-
-  async dryRunMigration(newSchema: DatabaseSchema, options?: MigrationOptions): Promise<DryRunResult> {
-    if (!this.migrationManager) {
-      throw new DexBeeError(
-        DexBeeErrorCode.CONNECTION_FAILED,
-        'Database is not connected. Call connect() first.',
-      )
-    }
-
-    const currentSchema = this.schemaManager.schema
-    const migrationPlan = await this.migrationManager.generateMigration(
-      currentSchema,
-      newSchema,
-      options,
-    )
-
-    return this.migrationManager.dryRun(migrationPlan)
-  }
-
-  async getMigrationStatus(): Promise<MigrationStatus> {
-    if (!this.migrationManager) {
-      throw new DexBeeError(
-        DexBeeErrorCode.CONNECTION_FAILED,
-        'Database is not connected. Call connect() first.',
-      )
-    }
-
-    return this.migrationManager.getMigrationStatus()
-  }
-
   // Internal method for migration manager to access connection
   getConnection(): IDBDatabase | null {
     return this.connectionManager.getConnection()
@@ -252,5 +175,10 @@ export class Database<TSchema extends DatabaseSchema = DatabaseSchema> implement
   // Get current schema
   getSchema(): DatabaseSchema {
     return this.schemaManager.schema
+  }
+
+  // Get database name (for migration plugin)
+  getName(): string {
+    return this.dbName
   }
 }
