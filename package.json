@@ -41,15 +41,15 @@
       }
     }
   },
+  "main": "dist/index.js",
+  "unpkg": "dist/index.umd.js",
+  "jsdelivr": "dist/index.umd.js",
+  "types": "dist/index.d.ts",
   "typesVersions": {
     "*": {
       "migrations": ["./dist/migrations.d.ts"]
     }
   },
-  "main": "dist/index.js",
-  "unpkg": "dist/index.umd.js",
-  "jsdelivr": "dist/index.umd.js",
-  "types": "dist/index.d.ts",
   "files": [
     "dist"
   ],
@@ -60,7 +60,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage",
+    "test:coverage": "vitest --run --coverage",
     "test:integration:browser": "vitest run --config vitest.browser.config.ts",
     "test:integration:browser:ui": "vitest --config vitest.browser.config.ts --ui",
     "test:all": "pnpm test && pnpm test:integration:browser",

@@ -1,4 +1,4 @@
-import { defineConfig } from 'vitest/config';
+import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
@@ -10,7 +10,7 @@ export default defineConfig({
       '**/node_modules/**',
       '**/dist/**',
       '**/tests/integration/blob-storage.test.ts',
-      '**/tests/integration/blob-simple.test.ts'
+      '**/tests/integration/blob-simple.test.ts',
     ],
     coverage: {
       reporter: ['text', 'json', 'html'],
@@ -18,8 +18,11 @@ export default defineConfig({
         'node_modules/',
         'tests/',
         'dist/',
-        '*.config.*'
-      ]
-    }
-  }
-});
+        'examples/',
+        'scripts/',
+        '*.config.*',
+        'src/**/types/',
+      ],
+    },
+  },
+})
