@@ -94,16 +94,6 @@ export class AlterFieldOperation implements MigrationOperation {
     }
   }
 
-  async rollback(db: IDBDatabase): Promise<void> {
-    // Rollback by "altering" back to the old definition
-    console.info(
-      `Rolling back field alteration for '${this.fieldName}' in table '${this.tableName}' to original definition.`,
-    )
-
-    // The rollback is essentially the reverse operation
-    // We restore the original field definition
-  }
-
   validate(oldSchema: DatabaseSchema, newSchema: DatabaseSchema): void {
     // Check that the table exists in both schemas
     if (!oldSchema.tables[this.tableName]) {

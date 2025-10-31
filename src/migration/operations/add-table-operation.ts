@@ -72,21 +72,6 @@ export class AddTableOperation implements MigrationOperation {
     }
   }
 
-  async rollback(db: IDBDatabase): Promise<void> {
-    try {
-      if (db.objectStoreNames.contains(this.tableName)) {
-        db.deleteObjectStore(this.tableName)
-      }
-    }
-    catch (error) {
-      throw new DexBeeError(
-        DexBeeErrorCode.ROLLBACK_FAILED,
-        `Failed to rollback table creation for '${this.tableName}': ${error instanceof Error ? error.message : 'Unknown error'}`,
-        error instanceof Error ? error : undefined,
-      )
-    }
-  }
-
   validate(oldSchema: DatabaseSchema, newSchema: DatabaseSchema): void {
     // Check that the table doesn't exist in the old schema
     if (oldSchema.tables[this.tableName]) {

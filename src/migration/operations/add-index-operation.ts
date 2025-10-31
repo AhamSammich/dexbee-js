@@ -41,13 +41,6 @@ export class AddIndexOperation implements MigrationOperation {
     }
   }
 
-  async rollback(db: IDBDatabase): Promise<void> {
-    console.info(
-      `Rolling back addition of index '${this.indexName}' from table '${this.tableName}'.`,
-    )
-    // The rollback would involve removing the index during a version change
-  }
-
   validate(oldSchema: DatabaseSchema, newSchema: DatabaseSchema): void {
     // Check that the table exists in both schemas
     if (!oldSchema.tables[this.tableName]) {
@@ -125,13 +118,6 @@ export class DropIndexOperation implements MigrationOperation {
         error instanceof Error ? error : undefined,
       )
     }
-  }
-
-  async rollback(db: IDBDatabase): Promise<void> {
-    console.info(
-      `Rolling back deletion of index '${this.indexName}' for table '${this.tableName}'.`,
-    )
-    // Would recreate the index during version change
   }
 
   validate(oldSchema: DatabaseSchema, newSchema: DatabaseSchema): void {

@@ -8,7 +8,6 @@ export class DropFieldOperation implements MigrationOperation {
   constructor(
     public tableName: string,
     public fieldName: string,
-    private preservedFieldDefinition?: FieldDefinition,
   ) {}
 
   async execute(db: IDBDatabase): Promise<void> {
@@ -30,12 +29,7 @@ export class DropFieldOperation implements MigrationOperation {
         + `Field will no longer be validated, but existing data will remain until cleaned up.`,
       )
 
-      // If there was a unique index on this field, we should note that it will be removed
-      if (this.preservedFieldDefinition?.unique) {
-        console.info(
-          `Unique constraint on field '${this.fieldName}' will no longer be enforced.`,
-        )
-      }
+      // Note: If there was a unique index on this field, it will be removed
     }
     catch (error) {
       throw new DexBeeError(
@@ -44,21 +38,6 @@ export class DropFieldOperation implements MigrationOperation {
         error instanceof Error ? error : undefined,
       )
     }
-  }
-
-  async rollback(db: IDBDatabase): Promise<void> {
-    if (!this.preservedFieldDefinition) {
-      throw new DexBeeError(
-        DexBeeErrorCode.ROLLBACK_FAILED,
-        `Cannot rollback field deletion for '${this.fieldName}' - original definition not preserved`,
-      )
-    }
-
-    // Restore the field to schema validation
-    console.info(
-      `Rolling back deletion of field '${this.fieldName}' from table '${this.tableName}'. `
-      + `Field validation will be restored.`,
-    )
   }
 
   validate(oldSchema: DatabaseSchema, newSchema: DatabaseSchema): void {
@@ -100,9 +79,6 @@ export class DropFieldOperation implements MigrationOperation {
         `Cannot drop field '${this.fieldName}' - it is the primary key for table '${this.tableName}'`,
       )
     }
-
-    // Store the original field definition for potential rollback
-    this.preservedFieldDefinition = oldSchema.tables[this.tableName].schema?.[this.fieldName]
 
     // Warn about data loss
     console.warn(

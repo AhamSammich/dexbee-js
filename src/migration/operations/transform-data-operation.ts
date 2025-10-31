@@ -67,22 +67,6 @@ export class TransformDataOperation implements MigrationOperation {
     }
   }
 
-  async rollback(db: IDBDatabase): Promise<void> {
-    // Data transformations are generally not reversible without explicit rollback logic
-    // This would require either:
-    // 1. A backup of the original data
-    // 2. An inverse transformation function
-    // 3. A complete restore from backup
-
-    console.warn(
-      `Rolling back data transformation for table '${this.tableName}'. `
-      + `Data transformations may not be fully reversible without backups.`,
-    )
-
-    // In a production system, this would attempt to restore from backup
-    // or apply an inverse transformation if available
-  }
-
   validate(oldSchema: DatabaseSchema, newSchema: DatabaseSchema): void {
     // Check that the table exists in both schemas
     if (!oldSchema.tables[this.tableName]) {

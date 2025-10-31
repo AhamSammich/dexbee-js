@@ -52,17 +52,6 @@ export class AddFieldOperation implements MigrationOperation {
     }
   }
 
-  async rollback(db: IDBDatabase): Promise<void> {
-    // Note: Since IndexedDB doesn't enforce field schemas at the database level,
-    // rolling back a field addition primarily means removing it from our schema definition
-    // Existing records with this field would need to be cleaned up manually
-
-    console.warn(
-      `Rolling back addition of field '${this.fieldName}' from table '${this.tableName}'. `
-      + `Field will no longer be validated, but existing data with this field will remain.`,
-    )
-  }
-
   validate(oldSchema: DatabaseSchema, newSchema: DatabaseSchema): void {
     // Check that the table exists in both schemas
     if (!oldSchema.tables[this.tableName]) {
