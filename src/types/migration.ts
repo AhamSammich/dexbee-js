@@ -8,7 +8,6 @@ export type MigrationOperationType
     | 'alterField'
     | 'addIndex'
     | 'dropIndex'
-    | 'transformData'
 
 export interface MigrationOperation {
   type: MigrationOperationType
@@ -22,12 +21,6 @@ export interface MigrationPlan {
   operations: MigrationOperation[]
   dependencies: string[]
   estimatedDuration: number
-}
-
-export interface DataTransformation<T = any, R = any> {
-  transform: (record: T, tableName: string) => R
-  filter?: (record: T, tableName: string) => boolean
-  validate?: (result: R, tableName: string) => boolean
 }
 
 export interface SchemaDiff {
@@ -112,35 +105,4 @@ export interface ComplexityReport {
   factors: string[]
   estimatedDuration: number
   riskLevel: 'low' | 'medium' | 'high'
-}
-
-export interface TransformOptions {
-  batchSize?: number
-  validateResults?: boolean
-  continueOnError?: boolean
-}
-
-export interface TransformResult {
-  success: boolean
-  recordsProcessed: number
-  recordsTransformed: number
-  errors: Error[]
-  duration: number
-}
-
-export interface BatchTransformOptions extends TransformOptions {
-  parallelTables?: boolean
-  maxConcurrency?: number
-}
-
-export interface TableTransformation<T = any, R = any> {
-  tableName: string
-  transformation: DataTransformation<T, R>
-}
-
-export interface BatchTransformResult {
-  success: boolean
-  tableResults: Map<string, TransformResult>
-  totalDuration: number
-  errors: Error[]
 }

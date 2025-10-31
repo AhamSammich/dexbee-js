@@ -1,5 +1,5 @@
 import type { MigrationOperation } from '../../types/migration'
-import type { DatabaseSchema, FieldDefinition } from '../../types/schema'
+import type { DatabaseSchema } from '../../types/schema'
 import { DexBeeError, DexBeeErrorCode } from '../../types/errors'
 
 export class DropFieldOperation implements MigrationOperation {

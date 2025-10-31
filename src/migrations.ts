@@ -218,7 +218,6 @@ export function withMigrations<TSchema extends DatabaseSchema>(
 
 export { MigrationManager } from './core/migration-manager.js'
 export { SchemaDiffEngine } from './core/schema-diff-engine.js'
-export { DataTransformer } from './migration/data-transformer.js'
 
 export { AddFieldOperation } from './migration/operations/add-field-operation.js'
 /**
@@ -231,7 +230,6 @@ export { AddTableOperation } from './migration/operations/add-table-operation.js
 export { AlterFieldOperation } from './migration/operations/alter-field-operation.js'
 export { DropFieldOperation } from './migration/operations/drop-field-operation.js'
 export { DropTableOperation } from './migration/operations/drop-table-operation.js'
-export { TransformDataOperation } from './migration/operations/transform-data-operation.js'
 
 /**
  * Migration type definitions.
@@ -239,7 +237,6 @@ export { TransformDataOperation } from './migration/operations/transform-data-op
  * Type definitions for migration plans, operations, and results.
  */
 export type {
-  DataTransformation,
   DryRunResult,
   MigrationOperation,
   MigrationOptions,

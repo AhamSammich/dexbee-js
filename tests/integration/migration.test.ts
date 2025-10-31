@@ -9,9 +9,7 @@ import {
   AddFieldOperation,
   AddTableOperation,
   AlterFieldOperation,
-  DataTransformer,
   SchemaDiffEngine,
-  TransformDataOperation,
   withMigrations,
 } from '../../src/migrations.js'
 import 'fake-indexeddb/auto'
@@ -363,45 +361,6 @@ describe('Migration System Integration', () => {
     })
   })
 
-  describe('Data Transformation', () => {
-    it('should validate transformation functions', async () => {
-      const transformer = new DataTransformer()
-
-      const validTransformation = {
-        transform: (record: any) => ({ ...record, newField: 'test' }),
-        filter: (record: any) => true,
-        validate: (result: any) => result.newField === 'test',
-      }
-
-      const result = await transformer.validateTransformation(
-        'test_table',
-        validTransformation,
-        10,
-      )
-
-      expect(result.isValid).toBe(true)
-      expect(result.errors).toHaveLength(0)
-    })
-
-    it('should detect invalid transformation functions', async () => {
-      const transformer = new DataTransformer()
-
-      const invalidTransformation = {
-        transform: 'not a function',
-        filter: (record: any) => true,
-      }
-
-      const result = await transformer.validateTransformation(
-        'test_table',
-        invalidTransformation as any,
-        10,
-      )
-
-      expect(result.isValid).toBe(false)
-      expect(result.errors.length).toBeGreaterThan(0)
-    })
-  })
-
   describe('Migration Manager Integration', () => {
     it('should generate migration plan for schema changes', async () => {
       // Create initial database
@@ -524,59 +483,6 @@ describe('Migration System Integration', () => {
       await expect(migratable.dryRunMigration(invalidSchema)).rejects.toThrow()
 
       db.close()
-    })
-  })
-
-  describe('TransformDataOperation', () => {
-    it('should validate transformation operation', () => {
-      const transformation = {
-        transform: (record: any) => ({ ...record, processed: true }),
-        filter: (record: any) => !record.processed,
-        validate: (result: any) => result.processed === true,
-      }
-
-      const operation = new TransformDataOperation('users', transformation)
-
-      const schema: DatabaseSchema = {
-        version: 1,
-        tables: {
-          users: {
-            schema: {
-              id: { type: 'number', required: true },
-              name: { type: 'string', required: true },
-            },
-            primaryKey: 'id',
-            autoIncrement: true,
-          },
-        },
-      }
-
-      expect(() => operation.validate(schema, schema)).not.toThrow()
-    })
-
-    it('should reject invalid transformation', () => {
-      const invalidTransformation = {
-        // Missing transform function
-        filter: (record: any) => true,
-      }
-
-      const operation = new TransformDataOperation('users', invalidTransformation as any)
-
-      const schema: DatabaseSchema = {
-        version: 1,
-        tables: {
-          users: {
-            schema: {
-              id: { type: 'number', required: true },
-              name: { type: 'string', required: true },
-            },
-            primaryKey: 'id',
-            autoIncrement: true,
-          },
-        },
-      }
-
-      expect(() => operation.validate(schema, schema)).toThrow()
     })
   })
 

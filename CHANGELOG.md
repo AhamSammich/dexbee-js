@@ -38,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Removed `backupCreated` field from `MigrationResult` - always returned true without creating backup
   - Removed `MigrationHistoryManager` class and migration history tracking
   - Removed rollback methods from all migration operation classes
+- **BREAKING**: Removed incomplete data transformation features:
+  - Removed `DataTransformer` class - stub implementation with no actual functionality
+  - Removed `TransformDataOperation` class - depended on non-functional DataTransformer
+  - Removed `DataTransformation` type from migration types
+  - Removed `TransformOptions`, `TransformResult`, `BatchTransformOptions`, `TableTransformation`, and `BatchTransformResult` types
+  - Removed `transformData` from `MigrationOperationType` union
 
 ### Migration Guide
 **For users upgrading from v0.3.x:**
@@ -69,6 +75,24 @@ if (dryRun.isValid && dryRun.warnings.length === 0) {
 **For critical data protection**, see the Manual Backup pattern in `docs/migrations.md` which provides real backup functionality.
 
 **For true rollback capability**, see the Versioned Database Names pattern in `docs/migrations.md`.
+
+**If you were using TransformDataOperation:**
+```typescript
+// ❌ Before (doesn't work anyway - it's a stub)
+import { TransformDataOperation } from 'dexbee-js/migrations'
+const op = new TransformDataOperation('users', {
+  transform: (record) => ({ ...record, processed: true })
+})
+
+// ✅ After - Handle data transformation manually
+const db = await DexBee.connect('mydb', newSchema)
+const users = db.table('users')
+const allRecords = await users.all()
+const transformed = allRecords.map(record => ({ ...record, processed: true }))
+for (const record of transformed) {
+  await users.update(record.id, record)
+}
+```
 
 ## [0.3.1] - 2025-10-23
 

@@ -239,12 +239,6 @@ export class SchemaDiffEngine {
           factors.push('Field modification (complex)')
           break
         }
-        case 'transformData': {
-          score += 7
-          estimatedDuration += 5000
-          factors.push('Data transformation (high complexity)')
-          break
-        }
         case 'addIndex': {
           score += 2
           estimatedDuration += 200

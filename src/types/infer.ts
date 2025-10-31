@@ -111,11 +111,11 @@ export type InferFieldType<F extends ExtendedFieldDefinition>
   = F extends { type: infer T extends FieldType }
     ? F extends { required: true }
       ? F extends { nullable: false }
-        ? FieldTypeMap[T]                      // required, non-nullable
-        : FieldTypeMap[T] | null                // required, nullable (default)
+        ? FieldTypeMap[T] // required, non-nullable
+        : FieldTypeMap[T] | null // required, nullable (default)
       : F extends { nullable: false }
-        ? FieldTypeMap[T] | undefined           // optional, non-nullable
-        : FieldTypeMap[T] | null | undefined    // optional, nullable (default)
+        ? FieldTypeMap[T] | undefined // optional, non-nullable
+        : FieldTypeMap[T] | null | undefined // optional, nullable (default)
     : never
 
 /**

@@ -7,21 +7,18 @@ import type {
 } from '../types/migration'
 import type { DatabaseSchema } from '../types/schema'
 import type { Database } from './database'
-import { DataTransformer } from '../migration/data-transformer'
 import { MigrationValidator } from '../migration/safety/migration-validator'
 import { DexBeeError, DexBeeErrorCode } from '../types/errors'
 import { SchemaDiffEngine } from './schema-diff-engine'
 
 export class MigrationManager {
   private diffEngine: SchemaDiffEngine
-  private transformer: DataTransformer
   private validator: MigrationValidator
 
   constructor(
     private database: Database,
   ) {
     this.diffEngine = new SchemaDiffEngine()
-    this.transformer = new DataTransformer()
     this.validator = new MigrationValidator()
   }
 
@@ -187,7 +184,7 @@ export class MigrationManager {
 
       // Additional safety checks
       const destructiveOps = migration.operations.filter(op =>
-        ['dropTable', 'dropField', 'transformData'].includes(op.type),
+        ['dropTable', 'dropField'].includes(op.type),
       )
 
       if (destructiveOps.length > 0) {
