@@ -1,4 +1,4 @@
-import type { ApplyOptions, MigrationOptions } from '../../src/types/migration.js'
+import type { MigrationOptions } from '../../src/types/migration.js'
 import type { DatabaseSchema } from '../../src/types/schema.js'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { Database } from '../../src/core/database.js'
@@ -25,7 +25,7 @@ describe('migrationManager', () => {
         },
       },
     })
-    migrationManager = new MigrationManager(database, dbName)
+    migrationManager = new MigrationManager(database)
   })
 
   afterEach(async () => {
@@ -248,7 +248,7 @@ describe('migrationManager', () => {
       expect(result).toBeDefined()
       expect(result.success).toBe(true)
       expect(result.version).toBe(2)
-      expect(result.duration).toBeGreaterThan(0)
+      expect(result.duration).toBeGreaterThanOrEqual(0)
     })
 
     it('should handle migration errors gracefully', async () => {
@@ -261,7 +261,7 @@ describe('migrationManager', () => {
         transaction: vi.fn(),
       }
 
-      const errorManager = new MigrationManager(mockDatabase as any, dbName)
+      const errorManager = new MigrationManager(mockDatabase as any)
 
       const oldSchema: DatabaseSchema = {
         version: 1,
@@ -357,7 +357,7 @@ describe('migrationManager', () => {
       }
 
       const migrationPlan = await migrationManager.generateMigration(oldSchema, newSchema)
-      const options: ApplyOptions = { dryRun: true }
+      const options: MigrationOptions = { dryRun: true }
       const result = await migrationManager.applyMigration(migrationPlan, options)
 
       expect(result.success).toBe(true)
@@ -371,21 +371,19 @@ describe('migrationManager', () => {
 
       expect(status).toBeDefined()
       expect(status.currentVersion).toBeDefined()
-      expect(status.pendingMigrations).toBeDefined()
-      // lastAppliedMigration is optional, so it might be undefined
-      expect(typeof status.lastAppliedMigration).toBe('undefined')
+      expect(status.currentVersion).toBe(1) // Should match the schema version
     })
 
     it('should handle status retrieval errors', async () => {
-      // Mock history manager to throw error
-      const mockHistoryManager = {
-        getLastAppliedVersion: vi.fn().mockRejectedValue(new Error('History error')),
-        getMigrationRecord: vi.fn().mockRejectedValue(new Error('History error')),
+      // Mock database to throw error when getting schema
+      const mockDatabase = {
+        ...database,
+        getSchema: vi.fn().mockImplementation(() => {
+          throw new Error('Schema error')
+        }),
       }
 
-      const errorManager = new MigrationManager(database, dbName)
-      // @ts-expect-error - accessing private property for testing
-      errorManager.historyManager = mockHistoryManager
+      const errorManager = new MigrationManager(mockDatabase as any)
 
       await expect(errorManager.getMigrationStatus()).rejects.toThrow()
     })

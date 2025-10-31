@@ -2,7 +2,6 @@ import type {
   IntegrityResult,
   MigrationOperation,
   MigrationPlan,
-  RollbackValidation,
   ValidationResult,
 } from '../../types/migration'
 
@@ -98,41 +97,6 @@ export class MigrationValidator {
     catch (error) {
       result.passed = false
       result.errors.push(error instanceof Error ? error.message : 'Unknown integrity check error')
-    }
-
-    return result
-  }
-
-  /**
-   * Validate rollback capability for operations
-   */
-  validateRollbackCapability(operations: MigrationOperation[]): RollbackValidation {
-    const result: RollbackValidation = {
-      canRollback: true,
-      missingRollbackOperations: [],
-      warnings: [],
-    }
-
-    for (const operation of operations) {
-      if (!operation.rollback) {
-        result.canRollback = false
-        result.missingRollbackOperations.push(
-          `${operation.type} operation on ${operation.tableName}`,
-        )
-      }
-
-      // Check for operations that are difficult to rollback
-      if (operation.type === 'transformData') {
-        result.warnings.push(
-          `Data transformation on ${operation.tableName} may not be fully reversible`,
-        )
-      }
-
-      if (operation.type === 'dropTable' || operation.type === 'dropField') {
-        result.warnings.push(
-          `${operation.type} on ${operation.tableName} will cause data loss if rolled back`,
-        )
-      }
     }
 
     return result

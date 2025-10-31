@@ -14,7 +14,6 @@ export interface MigrationOperation {
   type: MigrationOperationType
   tableName: string
   execute: (db: IDBDatabase) => Promise<void>
-  rollback?: (db: IDBDatabase) => Promise<void>
   validate?: (oldSchema: DatabaseSchema, newSchema: DatabaseSchema) => void
 }
 
@@ -23,13 +22,6 @@ export interface MigrationPlan {
   operations: MigrationOperation[]
   dependencies: string[]
   estimatedDuration: number
-}
-
-export interface MigrationRecord {
-  version: number
-  appliedAt: Date
-  checksum: string
-  duration: number
 }
 
 export interface DataTransformation<T = any, R = any> {
@@ -78,36 +70,14 @@ export interface IndexDrop {
 
 export interface MigrationOptions {
   dryRun?: boolean
-  createBackup?: boolean
-  rollbackOnError?: boolean
   validateEachStep?: boolean
   batchSize?: number
-}
-
-export interface ApplyOptions extends MigrationOptions {
-  atomicExecution?: boolean
-  autoRollbackOnError?: boolean
-}
-
-export interface RollbackOptions {
-  targetVersion?: number
-  validateIntegrity?: boolean
-  createBackup?: boolean
 }
 
 export interface MigrationResult {
   success: boolean
   version: number
   operationsExecuted: number
-  duration: number
-  errors?: Error[]
-  backupCreated?: boolean
-}
-
-export interface RollbackResult {
-  success: boolean
-  targetVersion: number
-  operationsRolledBack: number
   duration: number
   errors?: Error[]
 }
@@ -122,9 +92,6 @@ export interface DryRunResult {
 
 export interface MigrationStatus {
   currentVersion: number
-  pendingMigrations: MigrationPlan[]
-  lastAppliedMigration?: MigrationRecord
-  isUpToDate: boolean
 }
 
 export interface ValidationResult {
@@ -176,10 +143,4 @@ export interface BatchTransformResult {
   tableResults: Map<string, TransformResult>
   totalDuration: number
   errors: Error[]
-}
-
-export interface RollbackValidation {
-  canRollback: boolean
-  missingRollbackOperations: string[]
-  warnings: string[]
 }

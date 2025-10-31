@@ -27,7 +27,6 @@ import type {
   MigrationOptions,
   MigrationResult,
   MigrationStatus,
-  RollbackResult,
 } from './types/migration.js'
 import type { DatabaseSchema } from './types/schema.js'
 import { MigrationManager } from './core/migration-manager.js'
@@ -65,24 +64,6 @@ export interface MigratableDatabase<TSchema extends DatabaseSchema = DatabaseSch
    * ```
    */
   migrate: (newSchema: DatabaseSchema, options?: MigrationOptions) => Promise<MigrationResult>
-
-  /**
-   * Rollback to a previous schema version.
-   *
-   * Attempts to revert the database to a specific version by reversing
-   * previously applied migrations.
-   *
-   * @param targetVersion - The version to rollback to
-   * @param options - Rollback options
-   * @returns Result of the rollback operation
-   *
-   * @example
-   * ```typescript
-   * const result = await migratable.rollback(1)
-   * console.log(`Rolled back ${result.operationsRolledBack} operations`)
-   * ```
-   */
-  rollback: (targetVersion: number) => Promise<RollbackResult>
 
   /**
    * Preview a migration without applying any changes.
@@ -158,12 +139,9 @@ export interface MigratableDatabase<TSchema extends DatabaseSchema = DatabaseSch
 export function withMigrations<TSchema extends DatabaseSchema>(
   database: Database<TSchema>,
 ): MigratableDatabase<TSchema> {
-  // Get the database name
-  const dbName = database.getName()
-
   // Create a migration manager instance for this database
   // Cast to Database<DatabaseSchema> for MigrationManager compatibility
-  const migrationManager = new MigrationManager(database as unknown as Database<DatabaseSchema>, dbName)
+  const migrationManager = new MigrationManager(database as unknown as Database<DatabaseSchema>)
 
   // Create augmented database object with migration methods
   const migratable = database as MigratableDatabase<TSchema>
@@ -194,17 +172,6 @@ export function withMigrations<TSchema extends DatabaseSchema>(
     }
 
     return result
-  }
-
-  migratable.rollback = async function (targetVersion: number): Promise<RollbackResult> {
-    if (!database.isConnected()) {
-      throw new DexBeeError(
-        DexBeeErrorCode.CONNECTION_FAILED,
-        'Database is not connected. Call connect() first.',
-      )
-    }
-
-    return migrationManager.rollback(targetVersion)
   }
 
   migratable.dryRunMigration = async function (
@@ -250,7 +217,6 @@ export function withMigrations<TSchema extends DatabaseSchema>(
  * function instead.
  */
 
-export { MigrationHistoryManager } from './core/migration-history.js'
 export { MigrationManager } from './core/migration-manager.js'
 export { SchemaDiffEngine } from './core/schema-diff-engine.js'
 export { DataTransformer } from './migration/data-transformer.js'
@@ -279,9 +245,7 @@ export type {
   MigrationOperation,
   MigrationOptions,
   MigrationPlan,
-  MigrationRecord,
   MigrationResult,
   MigrationStatus,
-  RollbackResult,
   ValidationResult,
 } from './types/migration.js'
