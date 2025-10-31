@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { Database } from '../../src/core/database.js'
 import type { DatabaseSchema } from '../../src/types/schema.js'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { Database } from '../../src/core/database.js'
 
 describe('Operation Queue Integration Tests', () => {
   const testSchema: DatabaseSchema = {

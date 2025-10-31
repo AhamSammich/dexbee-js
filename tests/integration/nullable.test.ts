@@ -1,8 +1,8 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { DexBee, type Database } from '../../src/index.js'
-import { defineSchema } from '../../src/helpers/define-schema.js'
+import type { Database } from '../../src/index.js'
 import type { InferTableType } from '../../src/types/infer.js'
-import { DexBeeError } from '../../src/types/errors.js'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { defineSchema } from '../../src/helpers/define-schema.js'
+import { DexBee } from '../../src/index.js'
 
 describe('Nullable Field Functionality', () => {
   let db: Database<any>

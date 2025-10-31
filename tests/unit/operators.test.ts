@@ -1,21 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import 'fake-indexeddb/auto'
-import { 
-  DexBee, 
-  eq, 
-  gt, 
-  gte, 
-  lt, 
-  lte, 
-  between, 
-  inArray, 
-  in_, 
-  notIn, 
-  and, 
-  or, 
+import type { Database } from '../../src/index.js'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import {
+  and,
+  between,
+  defineSchema,
+  DexBee,
+  eq,
+  gt,
+  gte,
+  in_,
+  inArray,
+  lt,
+  lte,
   not,
-  type DatabaseSchema 
+  notIn,
+  or,
 } from '../../src/index.js'
+import 'fake-indexeddb/auto'
 
 interface TestRecord {
   id: number
@@ -29,7 +30,7 @@ interface TestRecord {
   createdAt: Date
 }
 
-const testSchema: DatabaseSchema = {
+const testSchema = defineSchema({
   version: 1,
   tables: {
     records: {
@@ -42,13 +43,13 @@ const testSchema: DatabaseSchema = {
         isActive: { type: 'boolean', default: () => true },
         tags: { type: 'array', default: () => [] },
         category: { type: 'string', required: false },
-        createdAt: { type: 'date', default: () => new Date() }
+        createdAt: { type: 'date', default: () => new Date() },
       },
       primaryKey: 'id',
-      autoIncrement: true
-    }
-  }
-}
+      autoIncrement: true,
+    },
+  },
+})
 
 const testData: Omit<TestRecord, 'id' | 'createdAt'>[] = [
   { name: 'Alice', age: 25, score: 85, status: 'active', isActive: true, tags: ['admin', 'user'], category: 'A' },
@@ -57,11 +58,11 @@ const testData: Omit<TestRecord, 'id' | 'createdAt'>[] = [
   { name: 'Diana', age: 28, score: 95, status: 'pending', isActive: true, tags: ['admin'], category: 'C' },
   { name: 'Eve', age: 22, score: 88, status: 'active', isActive: true, tags: ['user', 'premium'], category: null },
   { name: 'Frank', age: 40, score: 72, status: 'inactive', isActive: false, tags: [], category: 'B' },
-  { name: 'Grace', age: 33, score: 90, status: 'banned', isActive: false, tags: ['user'], category: 'A' }
+  { name: 'Grace', age: 33, score: 90, status: 'banned', isActive: false, tags: ['user'], category: 'A' },
 ]
 
 describe('Query Operators Unit Tests', () => {
-  let db: any
+  let db: Database
   let table: any
 
   beforeEach(async () => {
@@ -76,7 +77,7 @@ describe('Query Operators Unit Tests', () => {
 
   afterEach(async () => {
     if (db) {
-      await db.close()
+      db.close()
     }
   })
 
@@ -225,10 +226,10 @@ describe('Query Operators Unit Tests', () => {
       it('should work the same as inArray', async () => {
         const inArrayResults = await table.where(inArray('status', ['active', 'pending'])).all()
         const in_Results = await table.where(in_('status', ['active', 'pending'])).all()
-        
+
         expect(in_Results).toHaveLength(inArrayResults.length)
         expect(in_Results.map((r: TestRecord) => r.id).sort()).toEqual(
-          inArrayResults.map((r: TestRecord) => r.id).sort()
+          inArrayResults.map((r: TestRecord) => r.id).sort(),
         )
       })
     })
@@ -264,9 +265,9 @@ describe('Query Operators Unit Tests', () => {
       it('should require all conditions to be true', async () => {
         const results = await table.where(and(
           eq('isActive', true),
-          gt('age', 25)
+          gt('age', 25),
         )).all()
-        
+
         expect(results).toHaveLength(2) // Bob (30), Diana (28) - Eve is 22, not > 25
         expect(results.every((r: TestRecord) => r.isActive && r.age > 25)).toBe(true)
       })
@@ -275,23 +276,23 @@ describe('Query Operators Unit Tests', () => {
         const results = await table.where(and(
           eq('isActive', true),
           gte('score', 85),
-          inArray('category', ['A', 'B', 'C'])
+          inArray('category', ['A', 'B', 'C']),
         )).all()
-        
+
         expect(results).toHaveLength(3) // Alice (A, 85), Bob (B, 92), Diana (C, 95)
-        expect(results.every((r: TestRecord) => 
-          r.isActive && 
-          r.score >= 85 && 
-          (r.category && ['A', 'B', 'C'].includes(r.category))
+        expect(results.every((r: TestRecord) =>
+          r.isActive
+          && r.score >= 85
+          && (r.category && ['A', 'B', 'C'].includes(r.category)),
         )).toBe(true)
       })
 
       it('should return empty when no records match all conditions', async () => {
         const results = await table.where(and(
           eq('isActive', true),
-          eq('status', 'banned') // No active banned users
+          eq('status', 'banned'), // No active banned users
         )).all()
-        
+
         expect(results).toHaveLength(0)
       })
 
@@ -306,9 +307,9 @@ describe('Query Operators Unit Tests', () => {
       it('should require at least one condition to be true', async () => {
         const results = await table.where(or(
           eq('name', 'Alice'),
-          eq('name', 'Bob')
+          eq('name', 'Bob'),
         )).all()
-        
+
         expect(results).toHaveLength(2)
         expect(results.map((r: TestRecord) => r.name).sort()).toEqual(['Alice', 'Bob'])
       })
@@ -317,9 +318,9 @@ describe('Query Operators Unit Tests', () => {
         const results = await table.where(or(
           eq('status', 'banned'),
           eq('category', null),
-          lt('age', 23)
+          lt('age', 23),
         )).all()
-        
+
         // Grace (banned), Eve (category null), Eve (age 22)
         expect(results).toHaveLength(2) // Eve matches two conditions but only counted once
         expect(results.some((r: TestRecord) => r.status === 'banned')).toBe(true)
@@ -329,9 +330,9 @@ describe('Query Operators Unit Tests', () => {
       it('should return all matching records', async () => {
         const results = await table.where(or(
           eq('isActive', true),
-          eq('isActive', false)
+          eq('isActive', false),
         )).all()
-        
+
         expect(results).toHaveLength(7) // All records
       })
 
@@ -352,9 +353,9 @@ describe('Query Operators Unit Tests', () => {
       it('should negate complex conditions', async () => {
         const results = await table.where(not(and(
           eq('isActive', true),
-          gt('age', 25)
+          gt('age', 25),
         ))).all()
-        
+
         // Should include: inactive users OR active users with age <= 25
         expect(results).toHaveLength(5) // Alice (active, age 25), Eve (active, age 22), Charlie, Frank, Grace (inactive)
         expect(results.every((r: TestRecord) => !r.isActive || r.age <= 25)).toBe(true)
@@ -372,32 +373,32 @@ describe('Query Operators Unit Tests', () => {
     describe('not(inArray(...)) vs notIn', () => {
       it('should produce identical results', async () => {
         const statusList = ['active', 'pending']
-        
+
         const notInResults = await table.where(notIn('status', statusList)).all()
         const composedResults = await table.where(not(inArray('status', statusList))).all()
-        
+
         expect(composedResults).toHaveLength(notInResults.length)
         expect(composedResults.map((r: TestRecord) => r.id).sort()).toEqual(
-          notInResults.map((r: TestRecord) => r.id).sort()
+          notInResults.map((r: TestRecord) => r.id).sort(),
         )
       })
 
       it('should work with complex nested conditions', async () => {
         const values = [25, 30, 35]
-        
+
         const notInResults = await table.where(and(
           eq('isActive', true),
-          notIn('age', values)
+          notIn('age', values),
         )).all()
-        
+
         const composedResults = await table.where(and(
           eq('isActive', true),
-          not(inArray('age', values))
+          not(inArray('age', values)),
         )).all()
-        
+
         expect(composedResults).toHaveLength(notInResults.length)
         expect(composedResults.map((r: TestRecord) => r.id).sort()).toEqual(
-          notInResults.map((r: TestRecord) => r.id).sort()
+          notInResults.map((r: TestRecord) => r.id).sort(),
         )
       })
     })
@@ -408,15 +409,15 @@ describe('Query Operators Unit Tests', () => {
           or(
             and(
               eq('isActive', true),
-              inArray('category', ['A', 'B'])
+              inArray('category', ['A', 'B']),
             ),
             and(
               eq('status', 'banned'),
-              gt('score', 85)
-            )
-          )
+              gt('score', 85),
+            ),
+          ),
         ).all()
-        
+
         // Active users in category A or B, OR banned users with score > 85
         expect(results).toHaveLength(3) // Alice (active, A), Bob (active, B), and Grace (banned, 90)
       })
@@ -426,14 +427,14 @@ describe('Query Operators Unit Tests', () => {
           not(
             or(
               eq('status', 'active'),
-              eq('status', 'pending')
-            )
-          )
+              eq('status', 'pending'),
+            ),
+          ),
         ).all()
-        
+
         expect(results).toHaveLength(3) // Charlie, Frank, Grace (not active or pending)
-        expect(results.every((r: TestRecord) => 
-          r.status !== 'active' && r.status !== 'pending'
+        expect(results.every((r: TestRecord) =>
+          r.status !== 'active' && r.status !== 'pending',
         )).toBe(true)
       })
     })
@@ -467,7 +468,7 @@ describe('Query Operators Unit Tests', () => {
     it('should handle single-element arrays', async () => {
       const inResults = await table.where(inArray('name', ['Alice'])).all()
       const eqResults = await table.where(eq('name', 'Alice')).all()
-      
+
       expect(inResults).toHaveLength(eqResults.length)
       expect(inResults[0].id).toBe(eqResults[0].id)
     })
@@ -517,11 +518,11 @@ describe('Query Operators Unit Tests', () => {
       // Create a large array of values (most won't match)
       const largeArray = Array.from({ length: 1000 }, (_, i) => `value${i}`)
       largeArray.push('Alice') // Add one matching value
-      
+
       const startTime = Date.now()
       const results = await table.where(inArray('name', largeArray)).all()
       const duration = Date.now() - startTime
-      
+
       expect(results).toHaveLength(1)
       expect(results[0].name).toBe('Alice')
       // Should complete reasonably quickly (adjust threshold as needed)
@@ -534,13 +535,13 @@ describe('Query Operators Unit Tests', () => {
         and(
           or(
             and(eq('isActive', true), gt('age', 20)),
-            and(eq('isActive', false), lt('age', 40))
+            and(eq('isActive', false), lt('age', 40)),
           ),
-          not(inArray('status', ['banned', 'deleted', 'suspended']))
-        )
+          not(inArray('status', ['banned', 'deleted', 'suspended'])),
+        ),
       ).all()
       const duration = Date.now() - startTime
-      
+
       expect(Array.isArray(results)).toBe(true)
       expect(duration).toBeLessThan(1000) // Should be fast
     })
