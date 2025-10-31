@@ -16,6 +16,60 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Comprehensive integration tests for operation queue behavior
   - Enhanced examples to work with fake-indexeddb for Node.js testing
 
+- **Migration System Documentation**: Comprehensive documentation rewrite with practical patterns
+  - 4 documented migration patterns with decision tree (Cache-First, Additive-Only, Manual Backup, Versioned DBs)
+  - Clear guidance on when to use migrations vs. alternative approaches
+  - Pattern examples for common use cases (API caches, offline-first apps, user data)
+  - Honest documentation about migration capabilities and limitations
+  - See `docs/migrations.md` for complete migration guide
+
+### Changed
+- **Migration System Simplification**: Removed non-functional features to provide honest, working capabilities
+  - Migration system focused on safe, automatic schema evolution
+  - Dry run validation (`dryRunMigration()`) is now the primary safety mechanism
+  - Bundle size reduced from 24KB to 17KB (-29% reduction)
+  - All working features (migrate, dryRun, status) remain unchanged
+
+### Removed
+- **BREAKING**: Removed non-functional migration features that provided false security:
+  - Removed `rollback()` method - only worked for simple additive operations, failed for destructive changes
+  - Removed `createBackup` option from `MigrationOptions` - was not implemented (just a comment)
+  - Removed `rollbackOnError` option from `MigrationOptions` - didn't work for destructive operations
+  - Removed `backupCreated` field from `MigrationResult` - always returned true without creating backup
+  - Removed `MigrationHistoryManager` class and migration history tracking
+  - Removed rollback methods from all migration operation classes
+
+### Migration Guide
+**For users upgrading from v0.3.x:**
+
+Before (removed features):
+```typescript
+const result = await migratable.migrate(newSchema, {
+  createBackup: true,      // ❌ Did nothing
+  rollbackOnError: true    // ❌ Didn't work for destructive ops
+})
+await migratable.rollback(1) // ❌ Failed for destructive changes
+```
+
+After (simplified, working approach):
+```typescript
+// Preview first (shows exactly what will happen)
+const dryRun = await migratable.dryRunMigration(newSchema)
+console.log('Operations:', dryRun.operations)
+console.log('Warnings:', dryRun.warnings)
+
+// Apply if safe
+if (dryRun.isValid && dryRun.warnings.length === 0) {
+  await migratable.migrate(newSchema, {
+    validateEachStep: true  // Only valid option
+  })
+}
+```
+
+**For critical data protection**, see the Manual Backup pattern in `docs/migrations.md` which provides real backup functionality.
+
+**For true rollback capability**, see the Versioned Database Names pattern in `docs/migrations.md`.
+
 ## [0.3.1] - 2025-10-23
 
 ### Added
