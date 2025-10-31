@@ -310,9 +310,9 @@ describe('Aggregations', () => {
       if ('groups' in result) {
         expect(result.groups).toHaveLength(3) // Q1-2023, Q2-2023, Q1-2024
 
-        const q1_2023 = result.groups.find(g => g.key.quarter === 'Q1' && g.key.year === '2023')
-        const q2_2023 = result.groups.find(g => g.key.quarter === 'Q2' && g.key.year === '2023')
-        const q1_2024 = result.groups.find(g => g.key.quarter === 'Q1' && g.key.year === '2024')
+        const q1_2023 = result.groups.find(g => g.key.quarter === 'Q1' && String(g.key.year) === '2023')
+        const q2_2023 = result.groups.find(g => g.key.quarter === 'Q2' && String(g.key.year) === '2023')
+        const q1_2024 = result.groups.find(g => g.key.quarter === 'Q1' && String(g.key.year) === '2024')
 
         expect(q1_2023).toEqual({
           key: { quarter: 'Q1', year: '2023' },
@@ -398,8 +398,12 @@ describe('Aggregations', () => {
       const avgResult = await employees.where(eq('department', 'Engineering')).avg('salary')
       const countResult = await employees.where(eq('department', 'Engineering')).count()
 
-      expect(sumResult.value).toBe(245000)
-      expect(avgResult.value).toBeCloseTo(81666.67, 1)
+      expect('groups' in sumResult).toBe(false)
+      expect('groups' in avgResult).toBe(false)
+      if (!('groups' in sumResult) && !('groups' in avgResult)) {
+        expect(sumResult.value).toBe(245000)
+        expect(avgResult.value).toBeCloseTo(81666.67, 1)
+      }
       expect(countResult).toBe(3)
     })
 
@@ -435,7 +439,10 @@ describe('Aggregations', () => {
       const result = await employees.avg('score')
 
       // Should only count employees with valid scores
-      expect(result.count).toBe(8) // Original 8 employees, new one excluded
+      expect('groups' in result).toBe(false)
+      if (!('groups' in result)) {
+        expect(result.count).toBe(8) // Original 8 employees, new one excluded
+      }
     })
 
     it('should handle aggregation on empty table', async () => {
@@ -463,7 +470,10 @@ describe('Aggregations', () => {
 
       // This should work for count (no field required)
       const countResult = await employees.aggregate('count')
-      expect(countResult.count).toBe(8)
+      expect('groups' in countResult).toBe(false)
+      if (!('groups' in countResult)) {
+        expect(countResult.count).toBe(8)
+      }
 
       // This should require a field for sum
       await expect(employees.aggregate('sum')).rejects.toThrow('Field is required for sum aggregation')
