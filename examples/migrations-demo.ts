@@ -9,7 +9,7 @@
  * - Separate import for migrations (keeps core bundle small)
  * - Plugin architecture with withMigrations()
  * - Dry run validation before applying changes
- * - Safety options (backup, rollback, validation)
+ * - Step-by-step validation
  * - Multi-step schema evolution
  */
 
@@ -193,7 +193,7 @@ async function runMigrationDemo(): Promise<void> {
   }
 
   // ---------------------------------------------------------------------------
-  // Step 4: Apply Migration with Safety Options
+  // Step 4: Apply Migration
   // ---------------------------------------------------------------------------
   console.log('\n🚀 Step 4: Applying migration to v2...')
 
@@ -205,8 +205,6 @@ async function runMigrationDemo(): Promise<void> {
   const migratable2 = withMigrations(db3)
 
   const migrationResult = await migratable2.migrate(v2Schema, {
-    createBackup: true, // Create backup before migration
-    rollbackOnError: true, // Auto-rollback if anything fails
     validateEachStep: true, // Validate after each operation
   })
 
@@ -257,13 +255,6 @@ async function runMigrationDemo(): Promise<void> {
   const status = await migratable2.getMigrationStatus()
 
   console.log(`   Current version: ${status.currentVersion}`)
-  console.log(`   Up to date: ${status.isUpToDate}`)
-
-  if (status.lastAppliedMigration) {
-    console.log(`   Last applied: v${status.lastAppliedMigration.version}`)
-    console.log(`   Applied at: ${status.lastAppliedMigration.appliedAt.toISOString()}`)
-    console.log(`   Duration: ${status.lastAppliedMigration.duration}ms`)
-  }
 
   db3.close()
 
@@ -287,8 +278,7 @@ async function runMigrationDemo(): Promise<void> {
     const migratable4 = withMigrations(db5)
 
     const resultV3 = await migratable4.migrate(v3Schema, {
-      createBackup: true,
-      rollbackOnError: true,
+      validateEachStep: true,
     })
 
     if (resultV3.success) {
@@ -308,7 +298,6 @@ async function runMigrationDemo(): Promise<void> {
     const finalStatus = await migratable4.getMigrationStatus()
     console.log(`\n📈 Final status:`)
     console.log(`   Current version: ${finalStatus.currentVersion}`)
-    console.log(`   Up to date: ${finalStatus.isUpToDate}`)
 
     db5.close()
   }
@@ -343,9 +332,7 @@ console.log(`
 ║  2. ✅ Check validation results                               ║
 ║     if (!dryRun.isValid) { handle errors }                    ║
 ║                                                                ║
-║  3. ✅ Use safety options                                     ║
-║     createBackup: true                                         ║
-║     rollbackOnError: true                                      ║
+║  3. ✅ Use validation options                                 ║
 ║     validateEachStep: true                                     ║
 ║                                                                ║
 ║  4. ✅ Increment version numbers                              ║

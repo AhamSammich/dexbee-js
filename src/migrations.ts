@@ -12,10 +12,13 @@
  * const db = await DexBee.connect('mydb', schema)
  * const migratable = withMigrations(db)
  *
- * await migratable.migrate(newSchema, {
- *   createBackup: true,
- *   rollbackOnError: true
- * })
+ * // Preview migration first
+ * const dryRun = await migratable.dryRunMigration(newSchema)
+ * if (dryRun.isValid) {
+ *   await migratable.migrate(newSchema, {
+ *     validateEachStep: true
+ *   })
+ * }
  * ```
  *
  * @module migrations
@@ -35,8 +38,8 @@ import { DexBeeError, DexBeeErrorCode } from './types/errors.js'
 /**
  * Database instance augmented with migration capabilities.
  *
- * This interface extends the base Database with methods for schema evolution,
- * migration management, and rollback operations.
+ * This interface extends the base Database with methods for schema evolution
+ * and migration management.
  */
 export interface MigratableDatabase<TSchema extends DatabaseSchema = DatabaseSchema>
   extends Database<TSchema> {
@@ -44,21 +47,20 @@ export interface MigratableDatabase<TSchema extends DatabaseSchema = DatabaseSch
    * Apply a schema migration to transform the database structure.
    *
    * This method generates a migration plan, validates it, and applies the changes
-   * to the database. It supports automatic rollback on errors and data backups.
+   * to the database. Always use dryRunMigration first to preview changes.
    *
    * @param newSchema - The target schema to migrate to
-   * @param options - Migration options for safety and control
+   * @param options - Migration options for validation and control
    * @returns Result of the migration including success status and operations executed
    *
    * @example
    * ```typescript
-   * const result = await migratable.migrate(newSchema, {
-   *   createBackup: true,
-   *   rollbackOnError: true,
-   *   validateEachStep: true
-   * })
-   *
-   * if (result.success) {
+   * // Always preview first
+   * const dryRun = await migratable.dryRunMigration(newSchema)
+   * if (dryRun.isValid && dryRun.warnings.length === 0) {
+   *   const result = await migratable.migrate(newSchema, {
+   *     validateEachStep: true
+   *   })
    *   console.log(`Migration completed: ${result.operationsExecuted} operations`)
    * }
    * ```
@@ -91,10 +93,9 @@ export interface MigratableDatabase<TSchema extends DatabaseSchema = DatabaseSch
   dryRunMigration: (newSchema: DatabaseSchema, options?: MigrationOptions) => Promise<DryRunResult>
 
   /**
-   * Get current migration status and history.
+   * Get current migration status.
    *
-   * Returns information about the current schema version, applied migrations,
-   * and any pending migrations.
+   * Returns information about the current schema version.
    *
    * @returns Current migration status
    *
@@ -102,7 +103,6 @@ export interface MigratableDatabase<TSchema extends DatabaseSchema = DatabaseSch
    * ```typescript
    * const status = await migratable.getMigrationStatus()
    * console.log(`Current version: ${status.currentVersion}`)
-   * console.log(`Up to date: ${status.isUpToDate}`)
    * ```
    */
   getMigrationStatus: () => Promise<MigrationStatus>
@@ -128,10 +128,9 @@ export interface MigratableDatabase<TSchema extends DatabaseSchema = DatabaseSch
  *
  * // Now you can use migration methods
  * const dryRun = await migratable.dryRunMigration(newSchema)
- * if (dryRun.isValid) {
+ * if (dryRun.isValid && dryRun.warnings.length === 0) {
  *   await migratable.migrate(newSchema, {
- *     createBackup: true,
- *     rollbackOnError: true
+ *     validateEachStep: true
  *   })
  * }
  * ```

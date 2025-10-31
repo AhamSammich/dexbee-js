@@ -386,14 +386,12 @@ const newSchema: DatabaseSchema = {
 // Preview migration with dry run
 const dryRun = await migratable.dryRunMigration(newSchema)
 console.log('Operations:', dryRun.operations)
+console.log('Warnings:', dryRun.warnings)
 console.log('Valid:', dryRun.isValid)
 
-// Apply migration with safety options
-if (dryRun.isValid) {
-  const result = await migratable.migrate(newSchema, {
-    createBackup: true,
-    rollbackOnError: true
-  })
+// Apply migration if safe
+if (dryRun.isValid && dryRun.warnings.length === 0) {
+  const result = await migratable.migrate(newSchema)
   console.log(`Migration completed: ${result.operationsExecuted} operations`)
 }
 ```
@@ -526,8 +524,7 @@ import { withMigrations } from 'dexbee-js/migrations'
 
 - **`withMigrations(db)`** - Add migration capabilities to a Database instance
 - **`migrate(schema, options)`** - Apply schema migration
-- **`dryRunMigration(schema)`** - Preview migration without applying
-- **`rollback(version)`** - Rollback to a previous version
+- **`dryRunMigration(schema)`** - Preview migration without applying (recommended!)
 - **`getMigrationStatus()`** - Get current migration state
 
 See [docs/migrations.md](./docs/migrations.md) for complete migration documentation.

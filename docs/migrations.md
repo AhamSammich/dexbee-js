@@ -1,435 +1,499 @@
-# Migration System
+# Schema Migrations
 
-DexBee provides an enterprise-grade migration system for evolving your database schema safely.
-
-## Installation
-
-The migration system is included in `dexbee-js` but imported separately to keep your bundle size minimal:
-
-```typescript
-import { DexBee } from 'dexbee-js'              // Core: ~34KB
-import { withMigrations } from 'dexbee-js/migrations'  // Migrations: +22KB
-```
+DexBee provides optional schema migration capabilities for evolving your database structure over time.
 
 ## When to Use Migrations
 
-### ✅ Use migrations if:
-- Your app has 5+ tables
-- Schema changes frequently
-- You have real user data to protect
-- Multiple developers work on the schema
+### ✅ Use DexBee migrations if:
+- You have 5+ tables with evolving schemas
+- You're only adding new tables/fields (never removing)
+- Schema changes frequently during development
+- You want automatic migration generation
 
 ### ❌ Skip migrations if:
-- Simple app with 1-3 stable tables
-- Data is disposable/re-syncable from server
-- You prefer explicit control
+- Data is cached from a server (just clear and rebuild)
+- You have 1-3 stable tables
+- You need to remove/rename fields often
+- Data is disposable or easily recreated
 
 ## Quick Start
 
 ```typescript
-import { DexBee, defineSchema } from 'dexbee-js'
+import { DexBee } from 'dexbee-js'
 import { withMigrations } from 'dexbee-js/migrations'
 
-// 1. Connect to database
+// 1. Connect to your database
 const db = await DexBee.connect('myapp', currentSchema)
 
-// 2. Add migration capabilities
+// 2. Add migration capabilities (only if needed!)
 const migratable = withMigrations(db)
 
-// 3. Preview migration
+// 3. Preview what will change
 const dryRun = await migratable.dryRunMigration(newSchema)
 console.log('Operations:', dryRun.operations)
 console.log('Warnings:', dryRun.warnings)
 
-// 4. Apply migration with safety
-if (dryRun.isValid) {
-  const result = await migratable.migrate(newSchema, {
-    createBackup: true,
-    rollbackOnError: true
-  })
-  console.log(`Migrated ${result.operationsExecuted} operations`)
+// 4. Apply if safe
+if (dryRun.isValid && dryRun.warnings.length === 0) {
+  await migratable.migrate(newSchema)
 }
 ```
 
-## API Reference
+---
 
-### `withMigrations(database)`
+## Common Patterns for Schema Changes
 
-Augments a Database instance with migration methods.
+Choose the pattern that matches your use case:
 
-**Parameters:**
-- `database: Database` - The database instance to augment
+### Pattern 1: Cache-First (Simplest)
 
-**Returns:** `MigratableDatabase` - Database with migration capabilities
+**Best for:** API caches, offline queues, ephemeral data
 
-**Example:**
+Your data can be rebuilt from the server, so just clear and reconnect:
+
 ```typescript
-const db = await DexBee.connect('mydb', schema)
-const migratable = withMigrations(db)
-```
+import { DexBee } from 'dexbee-js'
 
-### `migrate(newSchema, options?)`
-
-Apply a migration to transform the schema.
-
-**Parameters:**
-- `newSchema: DatabaseSchema` - The target schema to migrate to
-- `options?: MigrationOptions` - Migration options
-
-**Options:**
-- `dryRun: boolean` – Test migration without applying
-- `createBackup: boolean` – Backup data before migration
-- `rollbackOnError: boolean` – Auto-rollback on failure
-- `validateEachStep: boolean` – Validate after each operation
-
-**Returns:** `Promise<MigrationResult>` - Migration result with success status
-
-**Example:**
-```typescript
-const result = await migratable.migrate(newSchema, {
-  createBackup: true,
-  rollbackOnError: true,
-  validateEachStep: true
-})
-
-if (result.success) {
-  console.log(`Migration completed: ${result.operationsExecuted} operations in ${result.duration}ms`)
-} else {
-  console.error('Migration failed:', result.errors)
-}
-```
-
-### `dryRunMigration(newSchema, options?)`
-
-Preview what a migration will do without applying changes.
-
-**Parameters:**
-- `newSchema: DatabaseSchema` - The target schema to analyze
-- `options?: MigrationOptions` - Migration options
-
-**Returns:** `Promise<DryRunResult>` - Dry run result with validation and warnings
-
-**Example:**
-```typescript
-const dryRun = await migratable.dryRunMigration(newSchema)
-
-console.log('Valid:', dryRun.isValid)
-console.log('Operations:', dryRun.operations.length)
-console.log('Warnings:', dryRun.warnings)
-console.log('Errors:', dryRun.errors)
-
-if (!dryRun.isValid) {
-  console.error('Migration validation failed:', dryRun.errors)
-  return
+async function connectDB(schema: DatabaseSchema) {
+  try {
+    return await DexBee.connect('myapp-cache', schema)
+  } catch (error) {
+    // Schema changed? Clear and rebuild
+    console.info('Schema changed, clearing cache...')
+    await DexBee.delete('myapp-cache')
+    return await DexBee.connect('myapp-cache', schema)
+  }
 }
 
-if (dryRun.warnings.length > 0) {
-  console.warn('Migration has warnings:', dryRun.warnings)
+// Usage
+const db = await connectDB(mySchema)
+// Cache is fresh with new schema
+```
+
+**Pros:**
+- ✅ Zero migration code needed
+- ✅ Always in sync with latest schema
+- ✅ No risk of migration failures
+
+**Cons:**
+- ❌ Temporary data loss (acceptable for caches)
+
+---
+
+### Pattern 2: Additive-Only Migrations (Recommended)
+
+**Best for:** Apps with growing schemas that never remove fields
+
+DexBee automatically handles safe additive changes:
+
+```typescript
+import { DexBee } from 'dexbee-js'
+import { withMigrations } from 'dexbee-js/migrations'
+
+// v1 Schema
+const schemaV1 = {
+  version: 1,
+  tables: {
+    users: {
+      schema: {
+        id: { type: 'number', required: true },
+        name: { type: 'string', required: true },
+        email: { type: 'string', required: true }
+      },
+      primaryKey: 'id',
+      autoIncrement: true
+    }
+  }
 }
 
-// Apply migration if valid
-await migratable.migrate(newSchema)
-```
-
-### `rollback(targetVersion, options?)`
-
-Rollback to a previous schema version.
-
-**Parameters:**
-- `targetVersion: number` - The version to rollback to
-- `options?: RollbackOptions` - Rollback options
-
-**Returns:** `Promise<RollbackResult>` - Rollback result
-
-**Example:**
-```typescript
-const result = await migratable.rollback(1)
-console.log(`Rolled back ${result.operationsRolledBack} operations`)
-```
-
-### `getMigrationStatus()`
-
-Get current migration version and history.
-
-**Returns:** `Promise<MigrationStatus>` - Current migration status
-
-**Example:**
-```typescript
-const status = await migratable.getMigrationStatus()
-console.log(`Current version: ${status.currentVersion}`)
-console.log(`Up to date: ${status.isUpToDate}`)
-console.log(`Pending migrations: ${status.pendingMigrations.length}`)
-```
-
-## Common Migration Scenarios
-
-### Adding a New Field
-
-```typescript
-const v2Schema = defineSchema({
+// v2 Schema (only additions!)
+const schemaV2 = {
   version: 2,
   tables: {
     users: {
       schema: {
         id: { type: 'number', required: true },
         name: { type: 'string', required: true },
-        email: { type: 'string', required: false, default: '' }, // New field
+        email: { type: 'string', required: true },
+        // NEW: Added fields with defaults - existing records unaffected
+        avatar: { type: 'string' },  // Optional
+        createdAt: { type: 'date', default: () => new Date() },
+        preferences: { type: 'object', default: () => ({ theme: 'light' }) }
       },
       primaryKey: 'id',
-      autoIncrement: true,
+      autoIncrement: true
     },
-  },
-})
-
-const migratable = withMigrations(db)
-await migratable.migrate(v2Schema)
-```
-
-### Adding a New Table
-
-```typescript
-const v2Schema = defineSchema({
-  version: 2,
-  tables: {
-    users: { /* existing table */ },
-    posts: { // New table
+    // NEW: Entire new table
+    sessions: {
       schema: {
-        id: { type: 'number', required: true },
-        title: { type: 'string', required: true },
-        content: { type: 'string', required: true },
-        authorId: { type: 'number', required: true },
+        id: { type: 'string', required: true },
+        userId: { type: 'number', required: true },
+        token: { type: 'string', required: true }
       },
-      primaryKey: 'id',
-      autoIncrement: true,
-    },
-  },
-})
+      primaryKey: 'id'
+    }
+  }
+}
 
-await migratable.migrate(v2Schema)
+// Apply migration (100% safe, no data loss)
+const db = await DexBee.connect('myapp', schemaV1)
+const migratable = withMigrations(db)
+
+const dryRun = await migratable.dryRunMigration(schemaV2)
+if (dryRun.warnings.length === 0) {
+  // No warnings = perfectly safe!
+  await migratable.migrate(schemaV2)
+}
 ```
 
-### Renaming a Field (with data transformation)
+**Field renaming workaround:**
+
+Instead of renaming (which requires transformation), add a new field:
 
 ```typescript
-// Note: This requires closing and reopening the database with the new schema
-// Migration will handle data transformation automatically
-const v2Schema = defineSchema({
+const schema = {
   version: 2,
   tables: {
     users: {
       schema: {
-        id: { type: 'number', required: true },
-        firstName: { type: 'string', required: true }, // Renamed from 'name'
-        lastName: { type: 'string', required: true },  // New field
-      },
-      primaryKey: 'id',
-      autoIncrement: true,
-    },
-  },
-})
+        name: { type: 'string' },     // Keep for old records
+        fullName: { type: 'string' }  // New preferred field
+      }
+    }
+  }
+}
 
-// Data transformation would be handled by dropping old field and adding new ones
+// In your app code:
+const displayName = user.fullName || user.name
 ```
 
-### Safe Migration Workflow
+**Pros:**
+- ✅ Zero data loss risk
+- ✅ Automatic migration generation
+- ✅ Works with DexBee migrations perfectly
+
+**Cons:**
+- ❌ Database grows with deprecated fields
+- ❌ Can't rename/remove fields easily
+
+---
+
+### Pattern 3: Manual Backup for Critical Data
+
+**Best for:** Offline-first apps with user-generated content
+
+When you need destructive changes (drop field/table), create your own backup:
 
 ```typescript
-// 1. Define new schema
-const newSchema = defineSchema({ /* ... */ })
-
-// 2. Always do a dry run first
-const dryRun = await migratable.dryRunMigration(newSchema)
-
-// 3. Check for errors
-if (!dryRun.isValid) {
-  console.error('Migration validation failed:', dryRun.errors)
-  return
-}
-
-// 4. Review warnings
-if (dryRun.warnings.length > 0) {
-  console.warn('Migration warnings:', dryRun.warnings)
-  // Decide if you want to proceed
-}
-
-// 5. Check for destructive operations
-const hasDestructive = dryRun.operations.some(op =>
-  ['dropTable', 'dropField', 'alterField'].includes(op.type)
-)
-
-if (hasDestructive) {
-  console.warn('Migration includes destructive operations!')
-  // Perhaps require user confirmation
-}
-
-// 6. Apply migration with safety options
-const result = await migratable.migrate(newSchema, {
-  createBackup: true,      // Create backup before migration
-  rollbackOnError: true,   // Auto-rollback if anything fails
-  validateEachStep: true,  // Validate after each operation
-})
-
-if (result.success) {
-  console.log('Migration successful!')
-} else {
-  console.error('Migration failed:', result.errors)
-}
-```
-
-## Bundle Size Impact
-
-The migration system is designed to be tree-shakeable, so you only pay for what you use:
-
-| Import Pattern | Bundle Size (gzipped) | Use Case |
-|----------------|----------------------|----------|
-| Core only | ~34KB | Apps without migrations |
-| With migrations | ~56KB | Apps using schema evolution |
-
-```typescript
-// Core only (~34KB) - No migration imports
-import { DexBee, eq, and } from 'dexbee-js'
-
-// With migrations (~56KB) - When you need schema evolution
 import { DexBee } from 'dexbee-js'
 import { withMigrations } from 'dexbee-js/migrations'
-```
 
-## Best Practices
-
-### 1. Always Test Migrations First
-
-```typescript
-// Always do a dry run before applying migrations
-const dryRun = await migratable.dryRunMigration(newSchema)
-if (!dryRun.isValid) {
-  console.error('Migration invalid:', dryRun.errors)
-  return
-}
-```
-
-### 2. Use Incremental Version Numbers
-
-```typescript
-// Good: Increment version by 1
-const v1Schema = { version: 1, /* ... */ }
-const v2Schema = { version: 2, /* ... */ }
-const v3Schema = { version: 3, /* ... */ }
-
-// Avoid: Skipping versions
-const v1Schema = { version: 1, /* ... */ }
-const v3Schema = { version: 3, /* ... */ } // ❌ Skipped version 2
-```
-
-### 3. Always Enable Safety Options
-
-```typescript
-// Always use safety options for production migrations
-await migratable.migrate(newSchema, {
-  createBackup: true,
-  rollbackOnError: true,
-  validateEachStep: true,
-})
-```
-
-### 4. Handle Migration Errors
-
-```typescript
-try {
-  const result = await migratable.migrate(newSchema, {
-    rollbackOnError: true,
-  })
-
-  if (!result.success) {
-    // Migration failed but was rolled back
-    console.error('Migration failed:', result.errors)
-    // Notify user or log to analytics
+// Helper: Export entire database
+async function exportDatabase(db: Database): Promise<any> {
+  const backup: any = {
+    version: db.getSchema().version,
+    timestamp: new Date().toISOString(),
+    tables: {}
   }
+
+  const tableNames = Object.keys(db.getSchema().tables)
+  for (const tableName of tableNames) {
+    backup.tables[tableName] = await db.table(tableName).all()
+  }
+
+  return backup
+}
+
+// Helper: Import database from backup
+async function importDatabase(db: Database, backup: any): Promise<void> {
+  for (const [tableName, records] of Object.entries(backup.tables)) {
+    const table = db.table(tableName)
+    await table.clear()
+    for (const record of records as any[]) {
+      await table.insert(record)
+    }
+  }
+}
+
+// Safe migration workflow
+const db = await DexBee.connect('myapp', currentSchema)
+const migratable = withMigrations(db)
+
+const dryRun = await migratable.dryRunMigration(newSchema)
+
+// Check for destructive operations
+const hasDestructiveOps = dryRun.warnings.some(w =>
+  w.includes('destructive') || w.includes('data loss')
+)
+
+if (hasDestructiveOps) {
+  console.warn('⚠️ Destructive migration detected!')
+  console.warn('Warnings:', dryRun.warnings)
+
+  // Create REAL backup
+  console.info('Creating backup...')
+  const backup = await exportDatabase(db)
+  localStorage.setItem('db-backup', JSON.stringify(backup))
+
+  // Or download as file
+  downloadJSON(backup, `backup-${Date.now()}.json`)
+
+  // Ask user for confirmation
+  const confirmed = confirm(
+    'This migration may delete data. A backup has been created. Continue?'
+  )
+  if (!confirmed) {
+    throw new Error('Migration cancelled by user')
+  }
+}
+
+// Apply migration
+try {
+  await migratable.migrate(newSchema)
+  console.info('✅ Migration successful')
+  localStorage.removeItem('db-backup')
 } catch (error) {
-  // Critical failure
-  console.error('Migration crashed:', error)
-  // Handle appropriately
+  console.error('❌ Migration failed:', error)
+
+  // Restore from backup
+  const backup = JSON.parse(localStorage.getItem('db-backup')!)
+  await importDatabase(db, backup)
+  console.info('✅ Restored from backup')
+
+  throw error
 }
 ```
 
-### 5. Check Migration Status
+**Pros:**
+- ✅ Real data protection
+- ✅ User-controlled
+- ✅ Can save backup externally (download, cloud)
+
+**Cons:**
+- ❌ Requires manual implementation
+- ❌ Large databases = large backups
+- ❌ Restore is slow for large datasets
+
+---
+
+### Pattern 4: Versioned Database Names
+
+**Best for:** Apps needing true rollback capability
+
+Use separate databases for each schema version:
+
+```typescript
+const DB_VERSION = 'v3'
+const schema = { version: 1, tables: { /* ... */ } }
+
+// Connect to versioned database
+const db = await DexBee.connect(`myapp-${DB_VERSION}`, schema)
+
+// Rollback = just change DB_VERSION back to 'v2' and redeploy
+
+// Migration from old version
+const oldDbName = `myapp-v2`
+const oldDbExists = await checkDatabaseExists(oldDbName)
+
+if (oldDbExists) {
+  console.info('Migrating from v2...')
+
+  const oldDb = await DexBee.connect(oldDbName, oldSchema)
+
+  // Copy data table by table
+  const users = await oldDb.table('users').all()
+  for (const user of users) {
+    await db.table('users').insert(transformUser(user))
+  }
+
+  await oldDb.close()
+  await DexBee.delete(oldDbName)  // Clean up
+}
+
+function checkDatabaseExists(name: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(name)
+    request.onsuccess = () => {
+      request.result.close()
+      resolve(true)
+    }
+    request.onerror = () => resolve(false)
+  })
+}
+```
+
+**Pros:**
+- ✅ True rollback capability (just switch version)
+- ✅ Gradual migration (can take time)
+- ✅ Test new schema before committing
+- ✅ Easy to A/B test schemas
+
+**Cons:**
+- ❌ Requires migration logic
+- ❌ Temporarily uses 2x storage
+
+---
+
+## API Reference
+
+### `withMigrations(database)`
+
+Adds migration capabilities to a Database instance.
+
+```typescript
+import { DexBee } from 'dexbee-js'
+import { withMigrations } from 'dexbee-js/migrations'
+
+const db = await DexBee.connect('mydb', schema)
+const migratable = withMigrations(db)
+```
+
+**Returns:** `MigratableDatabase` with these additional methods:
+
+---
+
+### `migrate(newSchema, options?)`
+
+Apply a schema migration.
+
+```typescript
+const result = await migratable.migrate(newSchema, {
+  validateEachStep: true  // Validate after each operation (default: true)
+})
+
+console.log('Success:', result.success)
+console.log('Operations:', result.operationsExecuted)
+console.log('Duration:', result.duration, 'ms')
+```
+
+**Options:**
+- `dryRun?: boolean` – Test without applying (default: false)
+- `validateEachStep?: boolean` – Validate after each operation (default: true)
+- `batchSize?: number` – Batch size for data transformations
+
+**Returns:** `Promise<MigrationResult>`
+
+---
+
+### `dryRunMigration(newSchema, options?)`
+
+Preview migration without applying changes.
+
+```typescript
+const dryRun = await migratable.dryRunMigration(newSchema)
+
+console.log('Valid:', dryRun.isValid)
+console.log('Operations:', dryRun.operations)
+console.log('Warnings:', dryRun.warnings)
+console.log('Errors:', dryRun.errors)
+
+// Check for destructive operations
+const hasDestructive = dryRun.warnings.some(w => w.includes('destructive'))
+```
+
+**Returns:** `Promise<DryRunResult>`
+
+---
+
+### `getMigrationStatus()`
+
+Get current schema version.
 
 ```typescript
 const status = await migratable.getMigrationStatus()
-console.log(`Current version: ${status.currentVersion}`)
-
-if (!status.isUpToDate) {
-  console.log('Migrations pending:', status.pendingMigrations)
-}
+console.log('Current version:', status.currentVersion)
 ```
 
-## Advanced Usage
+**Returns:** `Promise<MigrationStatus>`
 
-### Custom Migration Operations
+---
 
-For advanced scenarios, you can use the migration system internals directly:
+## What DexBee Migrations Do
 
-```typescript
-import {
-  MigrationManager,
-  SchemaDiffEngine,
-  AddTableOperation,
-  DataTransformer
-} from 'dexbee-js/migrations'
+**Automatic detection of:**
+- ✅ Added tables
+- ✅ Added fields (with defaults)
+- ✅ Added indexes
+- ✅ Removed tables (warns about data loss)
+- ✅ Removed fields (warns about data loss)
+- ✅ Modified field types (warns if risky)
 
-// Create custom migration logic
-const manager = new MigrationManager(db, 'mydb')
-const diffEngine = new SchemaDiffEngine()
+**Safety features:**
+- ✅ Dry run validation before applying
+- ✅ Warnings for destructive operations
+- ✅ Step-by-step validation
+- ✅ Automatic operation generation
 
-// Generate custom migration plan
-const plan = await manager.generateMigration(oldSchema, newSchema)
+**What's NOT included:**
+- ❌ Automatic backups (you implement it, see Pattern 3)
+- ❌ Automatic rollback (use Pattern 4 for true rollback)
+- ❌ Data transformation helpers (write your own)
 
-// Apply with custom options
-await manager.applyMigration(plan, {
-  batchSize: 100,
-  validateEachStep: true,
-})
+---
+
+## Decision Tree
+
+```
+Is your data disposable/cached from server?
+├─ YES → Pattern 1: Cache-First (no migration code needed)
+└─ NO → Do you only add fields/tables (never remove)?
+    ├─ YES → Pattern 2: Additive-Only Migrations (use DexBee)
+    └─ NO → Do you have critical user data?
+        ├─ YES → Pattern 3: Manual Backup
+        └─ NO → Pattern 4: Versioned Database Names
 ```
 
-## Troubleshooting
+---
 
-### Migration Validation Fails
+## Bundle Size
 
-If your migration fails validation:
+The migration system is **optional** and tree-shakeable:
 
-1. Check the error messages in `dryRun.errors`
-2. Ensure version numbers are incremental
-3. Verify all required fields have defaults or are nullable
-4. Check for conflicting schema changes
+- **Core DexBee:** 33KB (without migrations)
+- **With migrations:** +17KB (only when imported)
+- **Total:** 50KB (when using migrations)
 
-### Data Loss Warnings
+If you don't import from `'dexbee-js/migrations'`, you pay zero bytes.
 
-If you see data loss warnings:
+---
 
-1. Review the operations that will drop tables or fields
-2. Consider adding data transformation steps
-3. Always use `createBackup: true` option
-4. Test migrations on a copy of your data first
+## Examples
 
-### Performance Issues
+See `examples/migrations-demo.ts` for complete working examples of all patterns.
 
-If migrations are slow:
+---
 
-1. Use `batchSize` option to process data in chunks
-2. Consider doing migrations during low-traffic periods
-3. Test migration duration with `dryRun.estimatedDuration`
-4. Break large migrations into smaller incremental changes
+## Migration FAQ
+
+### Q: Should I use migrations?
+
+**A:** Only if your schema changes frequently AND you can't just clear the database. Most apps (caches, offline queues) should use Pattern 1.
+
+### Q: Can I remove/rename fields?
+
+**A:** Not automatically. Use Pattern 3 (manual backup) or Pattern 4 (versioned DBs) for destructive changes.
+
+### Q: What happens if migration fails?
+
+**A:** The database remains in its original state. No partial migrations. Use Pattern 3 for critical data protection.
+
+### Q: Can I rollback?
+
+**A:** Not automatically. Use Pattern 4 (versioned database names) for true rollback capability.
+
+### Q: How do I handle data transformations?
+
+**A:** Write custom migration logic. DexBee detects schema changes, but you write transformation code for complex data changes.
+
+---
 
 ## Migration Limitations
 
-Current limitations of the migration system:
+DexBee migrations are designed for **safe additive changes**. For complex scenarios:
 
-1. **Schema Version Changes**: Migrations that change the database version require a full database connection cycle
-2. **Complex Transformations**: Some complex data transformations may need to be done manually
-3. **Rollback Limitations**: Not all operations can be automatically rolled back (e.g., dropped data)
-4. **Concurrent Migrations**: Only one migration can run at a time per database
+- **Destructive changes:** Use manual backups (Pattern 3)
+- **Data transformations:** Write custom code
+- **Rollback needs:** Use versioned databases (Pattern 4)
+- **Complex workflows:** Consider server-side migration logic
 
-## See Also
-
-- [Schema Definition Guide](./schema-design.md)
-- [Type Safety Guide](./type-safety.md)
-- [Best Practices](./best-practices.md)
+The migration system is intentionally simple and honest about its capabilities.
