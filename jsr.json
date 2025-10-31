@@ -1,6 +1,6 @@
 {
   "name": "@dexbee/dexbee-js",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "description": "A TypeScript IndexedDB ORM with SQL-like query builder interface. Cross-runtime compatible (Browser, Node.js, Deno, Bun).",
   "license": "MIT",
   "keywords": [
