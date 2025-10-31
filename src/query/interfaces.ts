@@ -1,31 +1,31 @@
 import type { AggregationResult, GroupedAggregationResult, QueryOptions, QueryResult, RelationshipQuery, WhereCondition } from '../types/query.js'
 
-export interface IQueryBuilder<T = any> {
-  select: <K extends keyof T>(...fields: K[]) => IQueryBuilder<Pick<T, K>>
-  where: (condition: WhereCondition<T>) => IQueryBuilder<T>
-  orderBy: (field: keyof T, direction?: 'asc' | 'desc') => IQueryBuilder<T>
-  limit: (count: number) => IQueryBuilder<T>
-  offset: (count: number) => IQueryBuilder<T>
+export interface IQueryBuilder<TBase = any, TSelected = TBase> {
+  select: <K extends keyof TBase>(...fields: K[]) => IQueryBuilder<TBase, Pick<TBase, K>>
+  where: (condition: WhereCondition<TBase>) => IQueryBuilder<TBase, TSelected>
+  orderBy: (field: keyof TBase, direction?: 'asc' | 'desc') => IQueryBuilder<TBase, TSelected>
+  limit: (count: number) => IQueryBuilder<TBase, TSelected>
+  offset: (count: number) => IQueryBuilder<TBase, TSelected>
 
   // Relationship methods
-  include: (relationshipName: string, options?: Partial<RelationshipQuery>) => IQueryBuilder<T>
-  with: (relationshipName: string, options?: Partial<RelationshipQuery>) => IQueryBuilder<T>
+  include: (relationshipName: string, options?: Partial<RelationshipQuery>) => IQueryBuilder<TBase, TSelected>
+  with: (relationshipName: string, options?: Partial<RelationshipQuery>) => IQueryBuilder<TBase, TSelected>
 
   // Grouping methods
-  groupBy: (...fields: (keyof T)[]) => IQueryBuilder<T>
-  having: (condition: WhereCondition<any>) => IQueryBuilder<T>
+  groupBy: (...fields: (keyof TBase)[]) => IQueryBuilder<TBase, TSelected>
+  having: (condition: WhereCondition<any>) => IQueryBuilder<TBase, TSelected>
 
   // Execution methods
-  all: () => Promise<T[]>
-  first: () => Promise<T | null>
+  all: () => Promise<TSelected[]>
+  first: () => Promise<TSelected | null>
   count: () => Promise<number>
 
   // Aggregation methods
-  sum: (field: keyof T) => Promise<AggregationResult | GroupedAggregationResult<T>>
-  avg: (field: keyof T) => Promise<AggregationResult | GroupedAggregationResult<T>>
-  max: (field: keyof T) => Promise<AggregationResult | GroupedAggregationResult<T>>
-  min: (field: keyof T) => Promise<AggregationResult | GroupedAggregationResult<T>>
-  aggregate: (fn: 'sum' | 'avg' | 'max' | 'min' | 'count', field?: keyof T) => Promise<AggregationResult | GroupedAggregationResult<T>>
+  sum: (field: keyof TBase) => Promise<AggregationResult | GroupedAggregationResult<TBase>>
+  avg: (field: keyof TBase) => Promise<AggregationResult | GroupedAggregationResult<TBase>>
+  max: (field: keyof TBase) => Promise<AggregationResult | GroupedAggregationResult<TBase>>
+  min: (field: keyof TBase) => Promise<AggregationResult | GroupedAggregationResult<TBase>>
+  aggregate: (fn: 'sum' | 'avg' | 'max' | 'min' | 'count', field?: keyof TBase) => Promise<AggregationResult | GroupedAggregationResult<TBase>>
 }
 
 export interface IQueryExecutor {

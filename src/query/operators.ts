@@ -16,7 +16,7 @@ import type { WhereCondition } from '../types/query.js'
  * const users = await queryBuilder.where(condition).all()
  * ```
  */
-export function eq<T>(field: keyof T, value: any): WhereCondition<T> {
+export function eq<T = any>(field: keyof T, value: any): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'eq',
@@ -39,7 +39,7 @@ export function eq<T>(field: keyof T, value: any): WhereCondition<T> {
  * const adults = await queryBuilder.where(condition).all()
  * ```
  */
-export function gt<T>(field: keyof T, value: any): WhereCondition<T> {
+export function gt<T = any>(field: keyof T, value: any): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'gt',
@@ -62,7 +62,7 @@ export function gt<T>(field: keyof T, value: any): WhereCondition<T> {
  * const passingGrades = await queryBuilder.where(condition).all()
  * ```
  */
-export function gte<T>(field: keyof T, value: any): WhereCondition<T> {
+export function gte<T = any>(field: keyof T, value: any): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'gte',
@@ -85,7 +85,7 @@ export function gte<T>(field: keyof T, value: any): WhereCondition<T> {
  * const affordableItems = await queryBuilder.where(condition).all()
  * ```
  */
-export function lt<T>(field: keyof T, value: any): WhereCondition<T> {
+export function lt<T = any>(field: keyof T, value: any): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'lt',
@@ -108,7 +108,7 @@ export function lt<T>(field: keyof T, value: any): WhereCondition<T> {
  * const lowStockItems = await queryBuilder.where(condition).all()
  * ```
  */
-export function lte<T>(field: keyof T, value: any): WhereCondition<T> {
+export function lte<T = any>(field: keyof T, value: any): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'lte',
@@ -132,7 +132,7 @@ export function lte<T>(field: keyof T, value: any): WhereCondition<T> {
  * const workingAge = await queryBuilder.where(condition).all()
  * ```
  */
-export function between<T>(field: keyof T, min: any, max: any): WhereCondition<T> {
+export function between<T = any>(field: keyof T, min: any, max: any): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'between',
@@ -155,7 +155,7 @@ export function between<T>(field: keyof T, min: any, max: any): WhereCondition<T
  * const validUsers = await queryBuilder.where(condition).all()
  * ```
  */
-export function inArray<T>(field: keyof T, values: any[]): WhereCondition<T> {
+export function inArray<T = any>(field: keyof T, values: any[]): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'in',
@@ -175,7 +175,7 @@ export function inArray<T>(field: keyof T, values: any[]): WhereCondition<T> {
  * @param values - Array of values to match against
  * @returns A WhereCondition for IN comparison
  */
-export function in_<T>(field: keyof T, values: any[]): WhereCondition<T> {
+export function in_<T = any>(field: keyof T, values: any[]): WhereCondition<T> {
   return inArray(field, values)
 }
 
@@ -201,7 +201,7 @@ export function in_<T>(field: keyof T, values: any[]): WhereCondition<T> {
  * const activeUsers = await queryBuilder.where(condition).all()
  * ```
  */
-export function notIn<T>(field: keyof T, values: any[]): WhereCondition<T> {
+export function notIn<T = any>(field: keyof T, values: any[]): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'notIn',
@@ -230,11 +230,11 @@ export function notIn<T>(field: keyof T, values: any[]): WhereCondition<T> {
  * const users = await queryBuilder.where(condition).all()
  * ```
  */
-export function and<T>(...conditions: WhereCondition<T>[]): WhereCondition<T> {
+export function and<T = any>(...conditions: Array<WhereCondition<T> | WhereCondition<any>>): WhereCondition<T> {
   return {
     type: 'logical',
     operator: 'and',
-    conditions,
+    conditions: conditions as WhereCondition<T>[],
   }
 }
 
@@ -255,11 +255,11 @@ export function and<T>(...conditions: WhereCondition<T>[]): WhereCondition<T> {
  * const importantTasks = await queryBuilder.where(condition).all()
  * ```
  */
-export function or<T>(...conditions: WhereCondition<T>[]): WhereCondition<T> {
+export function or<T = any>(...conditions: Array<WhereCondition<T> | WhereCondition<any>>): WhereCondition<T> {
   return {
     type: 'logical',
     operator: 'or',
-    conditions,
+    conditions: conditions as WhereCondition<T>[],
   }
 }
 
@@ -277,11 +277,11 @@ export function or<T>(...conditions: WhereCondition<T>[]): WhereCondition<T> {
  * const activeUsers = await queryBuilder.where(condition).all()
  * ```
  */
-export function not<T>(condition: WhereCondition<T>): WhereCondition<T> {
+export function not<T = any>(condition: WhereCondition<T> | WhereCondition<any>): WhereCondition<T> {
   return {
     type: 'logical',
     operator: 'not',
-    conditions: [condition],
+    conditions: [condition as WhereCondition<T>],
   }
 }
 
@@ -304,7 +304,7 @@ export function not<T>(condition: WhereCondition<T>): WhereCondition<T> {
  *   .all()
  * ```
  */
-export function sizeGt<T>(field: keyof T, bytes: number): WhereCondition<T> {
+export function sizeGt<T = any>(field: keyof T, bytes: number): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'blobSizeGt',
@@ -330,7 +330,7 @@ export function sizeGt<T>(field: keyof T, bytes: number): WhereCondition<T> {
  *   .all()
  * ```
  */
-export function sizeLt<T>(field: keyof T, bytes: number): WhereCondition<T> {
+export function sizeLt<T = any>(field: keyof T, bytes: number): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'blobSizeLt',
@@ -358,7 +358,7 @@ export function sizeLt<T>(field: keyof T, bytes: number): WhereCondition<T> {
  *   .all()
  * ```
  */
-export function sizeBetween<T>(field: keyof T, min: number, max: number): WhereCondition<T> {
+export function sizeBetween<T = any>(field: keyof T, min: number, max: number): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'blobSizeBetween',
@@ -389,7 +389,7 @@ export function sizeBetween<T>(field: keyof T, min: number, max: number): WhereC
  *   .all()
  * ```
  */
-export function mimeType<T>(field: keyof T, type: string): WhereCondition<T> {
+export function mimeType<T = any>(field: keyof T, type: string): WhereCondition<T> {
   return {
     type: 'comparison',
     operator: 'blobMimeType',

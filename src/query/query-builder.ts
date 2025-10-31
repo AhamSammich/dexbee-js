@@ -8,7 +8,8 @@ import { QueryExecutor } from './query-executor.js'
  * Provides a chainable API for building complex queries with conditions, sorting,
  * aggregations, and relationships.
  *
- * @template T The type representing the table/entity being queried
+ * @template TBase The base type representing the table/entity being queried (never changes)
+ * @template TSelected The selected fields type (changes when select() is called, defaults to TBase)
  *
  * @example
  * ```typescript
@@ -20,8 +21,8 @@ import { QueryExecutor } from './query-executor.js'
  *   .all()
  * ```
  */
-export class QueryBuilder<T = any> implements IQueryBuilder<T> {
-  private options: QueryOptions<T> = {}
+export class QueryBuilder<TBase = any, TSelected = TBase> implements IQueryBuilder<TBase, TSelected> {
+  private options: QueryOptions<TBase> = {}
 
   /**
    * Creates a new QueryBuilder instance.
@@ -37,7 +38,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
   /**
    * Specifies which fields to select from the query result.
    *
-   * @template K The keys of T representing the fields to select
+   * @template K The keys of TBase representing the fields to select
    * @param fields - The field names to include in the result
    * @returns A new QueryBuilder instance with the specified fields selected
    *
@@ -47,15 +48,16 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    * // result will only contain 'id' and 'name' fields
    * ```
    */
-  select<K extends keyof T>(...fields: K[]): QueryBuilder<Pick<T, K>> {
-    const newBuilder = this.clone<Pick<T, K>>()
-    newBuilder.options.select = fields as (keyof Pick<T, K>)[]
+  select<K extends keyof TBase>(...fields: K[]): QueryBuilder<TBase, Pick<TBase, K>> {
+    const newBuilder = this.clone<TBase, Pick<TBase, K>>()
+    newBuilder.options.select = fields as (keyof TBase)[]
     return newBuilder
   }
 
   /**
    * Adds a WHERE condition to filter the query results.
    * Multiple where conditions are combined using AND logic.
+   * Conditions can reference any field in the base table, not just selected fields.
    *
    * @param condition - The condition to apply for filtering
    * @returns A new QueryBuilder instance with the condition applied
@@ -63,12 +65,13 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    * @example
    * ```typescript
    * const result = await queryBuilder
-   *   .where(eq('status', 'active'))
+   *   .select('name', 'age')
+   *   .where(eq('isActive', true))  // Can filter by any field, not just selected ones
    *   .where(gt('age', 18))
    *   .all()
    * ```
    */
-  where(condition: WhereCondition<T>): QueryBuilder<T> {
+  where(condition: WhereCondition<TBase>): QueryBuilder<TBase, TSelected> {
     const newBuilder = this.clone()
 
     if (this.options.where) {
@@ -102,7 +105,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    *   .all()
    * ```
    */
-  orderBy(field: keyof T, direction: 'asc' | 'desc' = 'asc'): QueryBuilder<T> {
+  orderBy(field: keyof TBase, direction: 'asc' | 'desc' = 'asc'): QueryBuilder<TBase, TSelected> {
     const newBuilder = this.clone()
 
     if (!newBuilder.options.orderBy) {
@@ -125,7 +128,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    * // Returns at most 10 records
    * ```
    */
-  limit(count: number): QueryBuilder<T> {
+  limit(count: number): QueryBuilder<TBase, TSelected> {
     const newBuilder = this.clone()
     newBuilder.options.limit = count
     return newBuilder
@@ -147,7 +150,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    * // Returns records 21-30
    * ```
    */
-  offset(count: number): QueryBuilder<T> {
+  offset(count: number): QueryBuilder<TBase, TSelected> {
     const newBuilder = this.clone()
     newBuilder.options.offset = count
     return newBuilder
@@ -168,7 +171,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    *   .all()
    * ```
    */
-  include(relationshipName: string, options?: Partial<RelationshipQuery>): QueryBuilder<T> {
+  include(relationshipName: string, options?: Partial<RelationshipQuery>): QueryBuilder<TBase, TSelected> {
     const newBuilder = this.clone()
 
     if (!newBuilder.options.include) {
@@ -200,7 +203,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    *   .all()
    * ```
    */
-  with(relationshipName: string, options?: Partial<RelationshipQuery>): QueryBuilder<T> {
+  with(relationshipName: string, options?: Partial<RelationshipQuery>): QueryBuilder<TBase, TSelected> {
     // 'with' is an alias for 'include' for more natural ORM syntax
     return this.include(relationshipName, options)
   }
@@ -219,7 +222,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    *   .count()
    * ```
    */
-  groupBy(...fields: (keyof T)[]): QueryBuilder<T> {
+  groupBy(...fields: (keyof TBase)[]): QueryBuilder<TBase, TSelected> {
     const newBuilder = this.clone()
 
     if (!newBuilder.options.groupBy) {
@@ -246,7 +249,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    *   .count()
    * ```
    */
-  having(condition: WhereCondition<any>): QueryBuilder<T> {
+  having(condition: WhereCondition<any>): QueryBuilder<TBase, TSelected> {
     const newBuilder = this.clone()
 
     if (!newBuilder.options.groupBy) {
@@ -270,9 +273,9 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    * console.log(users) // Array of user objects
    * ```
    */
-  async all(): Promise<T[]> {
-    const result = await this.executor.execute<T>(this.tableName, this.options)
-    return result.data
+  async all(): Promise<TSelected[]> {
+    const result = await this.executor.execute<TBase>(this.tableName, this.options)
+    return result.data as unknown as TSelected[]
   }
 
   /**
@@ -289,10 +292,10 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    * console.log(user) // Single user object or null
    * ```
    */
-  async first(): Promise<T | null> {
+  async first(): Promise<TSelected | null> {
     const limitedOptions = { ...this.options, limit: 1 }
-    const result = await this.executor.execute<T>(this.tableName, limitedOptions)
-    return result.data.length > 0 ? result.data[0] : null
+    const result = await this.executor.execute<TBase>(this.tableName, limitedOptions)
+    return result.data.length > 0 ? (result.data[0] as unknown as TSelected) : null
   }
 
   /**
@@ -326,7 +329,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
       limit: undefined, // Don't limit for count
       offset: undefined, // Don't offset for count
     }
-    const result = await this.executor.execute<T>(this.tableName, countOptions)
+    const result = await this.executor.execute<TBase>(this.tableName, countOptions)
     return result.count
   }
 
@@ -343,7 +346,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    *   .sum('amount')
    * ```
    */
-  async sum(field: keyof T): Promise<AggregationResult | GroupedAggregationResult<T>> {
+  async sum(field: keyof TBase): Promise<AggregationResult | GroupedAggregationResult<TBase>> {
     return this.aggregate('sum', field)
   }
 
@@ -360,7 +363,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    *   .avg('score')
    * ```
    */
-  async avg(field: keyof T): Promise<AggregationResult | GroupedAggregationResult<T>> {
+  async avg(field: keyof TBase): Promise<AggregationResult | GroupedAggregationResult<TBase>> {
     return this.aggregate('avg', field)
   }
 
@@ -377,7 +380,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    *   .max('age')
    * ```
    */
-  async max(field: keyof T): Promise<AggregationResult | GroupedAggregationResult<T>> {
+  async max(field: keyof TBase): Promise<AggregationResult | GroupedAggregationResult<TBase>> {
     return this.aggregate('max', field)
   }
 
@@ -394,7 +397,7 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    *   .min('salary')
    * ```
    */
-  async min(field: keyof T): Promise<AggregationResult | GroupedAggregationResult<T>> {
+  async min(field: keyof TBase): Promise<AggregationResult | GroupedAggregationResult<TBase>> {
     return this.aggregate('min', field)
   }
 
@@ -413,8 +416,8 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
    *   .aggregate('sum', 'amount')
    * ```
    */
-  async aggregate(fn: 'sum' | 'avg' | 'max' | 'min' | 'count', field?: keyof T): Promise<AggregationResult | GroupedAggregationResult<T>> {
-    const aggregationOptions: QueryOptions<T> = {
+  async aggregate(fn: 'sum' | 'avg' | 'max' | 'min' | 'count', field?: keyof TBase): Promise<AggregationResult | GroupedAggregationResult<TBase>> {
+    const aggregationOptions: QueryOptions<TBase> = {
       ...this.options,
       aggregation: {
         function: fn,
@@ -422,19 +425,20 @@ export class QueryBuilder<T = any> implements IQueryBuilder<T> {
       },
     }
 
-    return this.executor.aggregate<T>(this.tableName, aggregationOptions)
+    return this.executor.aggregate<TBase>(this.tableName, aggregationOptions)
   }
 
   /**
    * Creates a deep copy of the current QueryBuilder instance.
    * This ensures that chaining operations don't mutate the original builder.
    *
-   * @template U The type for the new QueryBuilder (defaults to T)
+   * @template UBase The base type for the new QueryBuilder (defaults to TBase)
+   * @template USelected The selected type for the new QueryBuilder (defaults to TSelected)
    * @returns A new QueryBuilder instance with copied options
    * @private
    */
-  private clone<U = T>(): QueryBuilder<U> {
-    const newBuilder = new QueryBuilder<U>(this.tableName, this.executor)
+  private clone<UBase = TBase, USelected = TSelected>(): QueryBuilder<UBase, USelected> {
+    const newBuilder = new QueryBuilder<UBase, USelected>(this.tableName, this.executor)
     newBuilder.options = JSON.parse(JSON.stringify(this.options))
     return newBuilder
   }
@@ -466,7 +470,7 @@ export function createQueryBuilder<T>(
   tableName: string,
   getTransaction: (stores: string[], mode: 'readonly' | 'readwrite') => Promise<ITransactionWrapper>,
   schema: import('../types/schema.js').DatabaseSchema,
-): QueryBuilder<T> {
+): QueryBuilder<T, T> {
   const executor = new QueryExecutor(getTransaction, schema)
-  return new QueryBuilder<T>(tableName, executor)
+  return new QueryBuilder<T, T>(tableName, executor)
 }

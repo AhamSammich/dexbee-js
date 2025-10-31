@@ -13,7 +13,7 @@ import { createQueryBuilder } from './query-builder.js'
  * @template T The TypeScript type representing the table's record structure
  */
 export class Table<T = any> {
-  private queryBuilder: QueryBuilder<T>
+  private queryBuilder: QueryBuilder<T, T>
   private operationQueue: OperationQueue
 
   /**
@@ -53,7 +53,7 @@ export class Table<T = any> {
    * const userNames = await table.select('name', 'email').all()
    * ```
    */
-  select<K extends keyof T>(...fields: K[]): QueryBuilder<Pick<T, K>> {
+  select<K extends keyof T>(...fields: K[]): QueryBuilder<T, Pick<T, K>> {
     return this.queryBuilder.select(...fields)
   }
 
@@ -69,7 +69,7 @@ export class Table<T = any> {
    * const adults = await table.where(gt('age', 18)).all()
    * ```
    */
-  where(condition: import('../types/query.js').WhereCondition<T>): QueryBuilder<T> {
+  where(condition: import('../types/query.js').WhereCondition<T>): QueryBuilder<T, T> {
     return this.queryBuilder.where(condition)
   }
 
@@ -86,7 +86,7 @@ export class Table<T = any> {
    * const sortedUsers = await table.orderBy('name', 'desc').all()
    * ```
    */
-  orderBy(field: keyof T, direction: 'asc' | 'desc' = 'asc'): QueryBuilder<T> {
+  orderBy(field: keyof T, direction: 'asc' | 'desc' = 'asc'): QueryBuilder<T, T> {
     return this.queryBuilder.orderBy(field, direction)
   }
 
@@ -102,7 +102,7 @@ export class Table<T = any> {
    * const first10 = await table.limit(10).all()
    * ```
    */
-  limit(count: number): QueryBuilder<T> {
+  limit(count: number): QueryBuilder<T, T> {
     return this.queryBuilder.limit(count)
   }
 
@@ -118,7 +118,7 @@ export class Table<T = any> {
    * const page2 = await table.offset(20).limit(10).all()
    * ```
    */
-  offset(count: number): QueryBuilder<T> {
+  offset(count: number): QueryBuilder<T, T> {
     return this.queryBuilder.offset(count)
   }
 
@@ -137,7 +137,7 @@ export class Table<T = any> {
    * const usersWithPosts = await table.include('posts').all()
    * ```
    */
-  include(relationshipName: string, options?: Partial<import('../types/query.js').RelationshipQuery>): QueryBuilder<T> {
+  include(relationshipName: string, options?: Partial<import('../types/query.js').RelationshipQuery>): QueryBuilder<T, T> {
     return this.queryBuilder.include(relationshipName, options)
   }
 
@@ -154,7 +154,7 @@ export class Table<T = any> {
    * const usersWithPosts = await table.with('posts').all()
    * ```
    */
-  with(relationshipName: string, options?: Partial<import('../types/query.js').RelationshipQuery>): QueryBuilder<T> {
+  with(relationshipName: string, options?: Partial<import('../types/query.js').RelationshipQuery>): QueryBuilder<T, T> {
     return this.queryBuilder.with(relationshipName, options)
   }
 
@@ -172,7 +172,7 @@ export class Table<T = any> {
    * const grouped = await table.groupBy('category', 'status').count()
    * ```
    */
-  groupBy(...fields: (keyof T)[]): QueryBuilder<T> {
+  groupBy(...fields: (keyof T)[]): QueryBuilder<T, T> {
     return this.queryBuilder.groupBy(...fields)
   }
 
@@ -188,7 +188,7 @@ export class Table<T = any> {
    * const results = await table.groupBy('category').having(gt('count', 5)).all()
    * ```
    */
-  having(condition: import('../types/query.js').WhereCondition<any>): QueryBuilder<T> {
+  having(condition: import('../types/query.js').WhereCondition<any>): QueryBuilder<T, T> {
     return this.queryBuilder.having(condition)
   }
 
